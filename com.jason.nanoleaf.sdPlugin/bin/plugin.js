@@ -20658,6 +20658,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     this.#statusTimers.delete(ev.action.id);
   }
   async onKeyDown(ev) {
+    const pressedAt = performance.now();
     const programs = ev.payload.settings.lights ?? [];
     if (programs.length === 0) {
       plugin_default.logger.warn("Apply Scene pressed before any lights were configured");
@@ -20665,6 +20666,9 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
       return;
     }
     const result = await toggleScene(programs, this.#clients);
+    plugin_default.logger.info(
+      `Button API cycle completed in ${Math.round(performance.now() - pressedAt)}ms (${result.mode}, ${result.succeeded.length} succeeded, ${result.failed.length} failed)`
+    );
     const on = result.mode === "on";
     for (const deviceId of result.succeeded) this.#powerCache.set(deviceId, { on, checkedAt: Date.now() });
     if (result.failed.length === 0) {
@@ -20890,13 +20894,20 @@ var NanoleafHttpClient = class {
     });
   }
   async #request(path5, init) {
+    const startedAt = performance.now();
+    const method = init.method ?? "GET";
     let response;
     try {
       response = await this.#fetch(`${this.#base}/${path5}`, { ...init, signal: AbortSignal.timeout(this.#timeoutMs) });
     } catch (error40) {
+      const elapsed = Math.round(performance.now() - startedAt);
+      plugin_default.logger.warn(`Nanoleaf ${method} ${path5} failed after ${elapsed}ms`);
       if (error40 instanceof DOMException && error40.name === "TimeoutError") throw new NanoleafApiError("Nanoleaf request timed out");
       throw new NanoleafApiError(`Unable to reach Nanoleaf device: ${error40 instanceof Error ? error40.message : String(error40)}`);
     }
+    plugin_default.logger.info(
+      `Nanoleaf ${method} ${path5} responded HTTP ${response.status} in ${Math.round(performance.now() - startedAt)}ms`
+    );
     if (response.ok) return response;
     if (response.status === 401) throw new NanoleafApiError("Nanoleaf authorization expired; pair the bulb again", 401);
     throw new NanoleafApiError(`Nanoleaf request failed with HTTP ${response.status}`, response.status);

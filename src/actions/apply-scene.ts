@@ -51,6 +51,7 @@ export class ApplySceneAction extends SingletonAction<Settings> {
   }
 
   override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
+    const pressedAt = performance.now();
     const programs = ev.payload.settings.lights ?? [];
     if (programs.length === 0) {
       streamDeck.logger.warn("Apply Scene pressed before any lights were configured");
@@ -58,6 +59,10 @@ export class ApplySceneAction extends SingletonAction<Settings> {
       return;
     }
     const result = await toggleScene(programs, this.#clients);
+    streamDeck.logger.info(
+      `Button API cycle completed in ${Math.round(performance.now() - pressedAt)}ms `
+      + `(${result.mode}, ${result.succeeded.length} succeeded, ${result.failed.length} failed)`
+    );
     const on = result.mode === "on";
     for (const deviceId of result.succeeded) this.#powerCache.set(deviceId, { on, checkedAt: Date.now() });
     if (result.failed.length === 0) {

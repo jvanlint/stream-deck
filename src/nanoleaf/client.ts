@@ -1,3 +1,4 @@
+import streamDeck from "@elgato/streamdeck";
 import type { NanoleafState, ValueRange } from "../models.js";
 import type { DiscoveryService } from "./discovery.js";
 import type { DeviceRepository, TokenStore } from "./settings.js";
@@ -96,13 +97,20 @@ export class NanoleafHttpClient implements NanoleafClient {
   }
 
   async #request(path: string, init: RequestInit): Promise<Response> {
+    const startedAt = performance.now();
+    const method = init.method ?? "GET";
     let response: Response;
     try {
       response = await this.#fetch(`${this.#base}/${path}`, { ...init, signal: AbortSignal.timeout(this.#timeoutMs) });
     } catch (error) {
+      const elapsed = Math.round(performance.now() - startedAt);
+      streamDeck.logger.warn(`Nanoleaf ${method} ${path} failed after ${elapsed}ms`);
       if (error instanceof DOMException && error.name === "TimeoutError") throw new NanoleafApiError("Nanoleaf request timed out");
       throw new NanoleafApiError(`Unable to reach Nanoleaf device: ${error instanceof Error ? error.message : String(error)}`);
     }
+    streamDeck.logger.info(
+      `Nanoleaf ${method} ${path} responded HTTP ${response.status} in ${Math.round(performance.now() - startedAt)}ms`
+    );
     if (response.ok) return response;
     if (response.status === 401) throw new NanoleafApiError("Nanoleaf authorization expired; pair the bulb again", 401);
     throw new NanoleafApiError(`Nanoleaf request failed with HTTP ${response.status}`, response.status);
