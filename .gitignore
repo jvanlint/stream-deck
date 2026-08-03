@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.streamDeckPlugin
+*.log
+.DS_Store
+

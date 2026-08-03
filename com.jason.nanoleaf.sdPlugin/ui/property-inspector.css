@@ -1,0 +1,59 @@
+:root { color-scheme: dark; font: 13px system-ui, sans-serif; }
+body { margin: 0; color: #ddd; background: #2d2d2d; }
+main { padding: 12px; }
+h1 { margin: 0 0 12px; font-size: 15px; color: #fff; }
+label { display: block; margin: 14px 0 5px; }
+input, select { box-sizing: border-box; width: 100%; padding: 7px 8px; color: #fff; border: 1px solid #666; border-radius: 3px; background: #3d3d3d; }
+.notice { padding: 9px; border-left: 3px solid #65d96e; background: #383838; }
+.help { margin-top: 6px; color: #aaa; font-size: 11px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 8px; }
+button { padding: 6px 10px; color: #fff; border: 1px solid #666; border-radius: 3px; background: #474747; cursor: pointer; }
+button:hover { background: #555; }
+button:disabled { cursor: wait; opacity: .6; }
+button.primary { border-color: #65d96e; background: #287c35; }
+.wide { width: 100%; margin: 0 0 8px; }
+button.secondary { color: #ddd; }
+#message { min-height: 16px; margin: 5px 0; font-size: 11px; }
+#message.success { color: #8be294; }
+#message.error { color: #ff8585; }
+.device { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin: 7px 0; padding: 9px; border: 1px solid #555; border-radius: 4px; background: #383838; }
+.device div { min-width: 0; }
+.device strong, .device small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device small { margin-top: 3px; color: #aaa; font-size: 10px; }
+.empty { padding: 12px; color: #aaa; text-align: center; border: 1px dashed #555; }
+details { margin-top: 14px; border-top: 1px solid #555; padding-top: 10px; }
+summary { color: #bbb; cursor: pointer; }
+.manual { margin-top: 8px; }
+.manual label { margin-top: 8px; }
+.manual button { margin-top: 10px; }
+h2 { margin: 18px 0 8px; font-size: 14px; color: #fff; }
+.manager-section { margin-top: 18px; border-top: 1px solid #555; }
+.scene-section { margin-bottom: 18px; }
+.scope-help { margin: 0 0 12px; color: #bbb; line-height: 1.4; }
+.plugin-setup { margin-top: 16px; padding: 0; border: 1px solid #555; border-radius: 4px; }
+.plugin-setup > summary { display: flex; flex-direction: column; gap: 2px; padding: 10px; cursor: pointer; background: #383838; }
+.plugin-setup > summary span { color: #aaa; font-size: 11px; font-weight: normal; }
+.plugin-setup > .manager-section { margin: 0; padding: 10px; border-top: 1px solid #555; }
+.program-card { margin: 9px 0; padding: 10px; border: 1px solid #5c725f; border-radius: 4px; background: #343b35; }
+.control-field { display: grid; grid-template-columns: 1fr 130px; align-items: center; gap: 8px; margin-top: 9px; }
+.slider-field { display: block; margin-top: 10px; }
+.slider-field > span { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.slider-field output { color: #8be294; font-variant-numeric: tabular-nums; }
+.slider-field input[type="range"] { padding: 0; accent-color: #65d96e; cursor: pointer; }
+.toggle-field { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+.toggle-field input { width: auto; }
+.toggle-hint { display: block; margin-top: 6px; color: #8be294; }
+.colour-row { margin-top: 10px; }
+.colour-row > label { display: flex; align-items: center; justify-content: space-between; margin: 0 0 8px; }
+.colour-row input[type="color"] { width: 64px; height: 34px; padding: 2px; cursor: pointer; }
+.swatches { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; }
+button.swatch { width: 100%; aspect-ratio: 1; padding: 0; border: 2px solid #777; border-radius: 50%; }
+button.swatch:hover { transform: scale(1.1); border-color: #fff; }
+.device.stacked { display: block; }
+.device-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rename-row, .create-row { display: flex; gap: 6px; margin-top: 9px; }
+.rename-row input, .create-row input { flex: 1; min-width: 0; }
+.group-card { margin: 8px 0; padding: 9px; border: 1px solid #555; border-radius: 4px; background: #383838; }
+.member { display: flex; align-items: center; gap: 7px; margin: 8px 0 0; }
+.member input { width: auto; }
+button.danger { color: #ffb0b0; border-color: #875050; }

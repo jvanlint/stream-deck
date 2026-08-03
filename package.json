@@ -1,0 +1,32 @@
+{
+  "name": "nanoleaf-stream-deck",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first Stream Deck control for Nanoleaf Essentials bulbs",
+  "scripts": {
+    "clean": "rimraf dist com.jason.nanoleaf.sdPlugin/bin",
+    "build": "npm run clean && tsc --noEmit && node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate": "streamdeck validate com.jason.nanoleaf.sdPlugin",
+    "pack": "npm run build && streamdeck pack com.jason.nanoleaf.sdPlugin"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.0.0",
+    "@elgato/utils": "^0.4.5",
+    "bonjour-service": "^1.4.4"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.6.0",
+    "@types/node": "^20.17.0",
+    "esbuild": "^0.25.0",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

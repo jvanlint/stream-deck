@@ -1,0 +1,227 @@
+import streamDeck, {
+  action,
+  type DidReceiveSettingsEvent,
+  type KeyDownEvent,
+  type PropertyInspectorDidAppearEvent,
+  type PropertyInspectorDidDisappearEvent,
+  type SendToPluginEvent,
+  SingletonAction,
+  type WillAppearEvent
+  , type WillDisappearEvent
+} from "@elgato/streamdeck";
+import type { JsonObject, JsonValue } from "@elgato/utils";
+import type { SceneActionSettings } from "../models.js";
+import type { NanoleafClientFactory } from "../nanoleaf/client.js";
+import type { NanoleafDeviceManager } from "../nanoleaf/device-manager.js";
+import { toggleScene } from "../nanoleaf/scene.js";
+
+type Settings = SceneActionSettings & JsonObject & { manualHostRequest?: string };
+
+@action({ UUID: "com.jason.nanoleaf.apply-scene" })
+export class ApplySceneAction extends SingletonAction<Settings> {
+  readonly #manager: NanoleafDeviceManager;
+  readonly #clients: NanoleafClientFactory;
+  #propertyInspectorVisible = false;
+  readonly #statusTimers = new Map<string, ReturnType<typeof setInterval>>();
+  readonly #powerCache = new Map<string, { on: boolean; checkedAt: number }>();
+  readonly #powerReads = new Map<string, Promise<boolean>>();
+
+  constructor(manager: NanoleafDeviceManager, clients: NanoleafClientFactory) {
+    super();
+    this.#manager = manager;
+    this.#clients = clients;
+    manager.onChange(() => { if (this.#propertyInspectorVisible) void this.#sendDevices(); });
+  }
+
+  override async onWillAppear(ev: WillAppearEvent<Settings>): Promise<void> {
+    const count = ev.payload.settings.lights?.length ?? 0;
+    await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    await this.#refreshKey(ev.action, ev.payload.settings.lights ?? []);
+    const existing = this.#statusTimers.get(ev.action.id);
+    if (existing) clearInterval(existing);
+    this.#statusTimers.set(ev.action.id, setInterval(() => {
+      void ev.action.getSettings<Settings>().then((settings) => this.#refreshKey(ev.action, settings.lights ?? []));
+    }, 10_000));
+  }
+
+  override onWillDisappear(ev: WillDisappearEvent<Settings>): void {
+    const timer = this.#statusTimers.get(ev.action.id);
+    if (timer) clearInterval(timer);
+    this.#statusTimers.delete(ev.action.id);
+  }
+
+  override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
+    const programs = ev.payload.settings.lights ?? [];
+    if (programs.length === 0) {
+      streamDeck.logger.warn("Apply Scene pressed before any lights were configured");
+      await ev.action.showAlert();
+      return;
+    }
+    const result = await toggleScene(programs, this.#clients);
+    const on = result.mode === "on";
+    for (const deviceId of result.succeeded) this.#powerCache.set(deviceId, { on, checkedAt: Date.now() });
+    if (result.failed.length === 0) {
+      streamDeck.logger.info(`Scene applied to ${result.succeeded.length} light(s)`);
+      if (ev.action.isKey()) await ev.action.setImage(this.#keyImage(result.mode, this.#configuredColour(programs)));
+      await ev.action.showOk();
+    } else {
+      for (const failure of result.failed) streamDeck.logger.error(`Scene update failed for ${failure.deviceId}: ${String(failure.error)}`);
+      await ev.action.showAlert();
+    }
+    // toggleScene already confirmed the requested state. Avoid immediately issuing
+    // another GET, which can overwhelm slower bulbs and delay the icon update.
+  }
+
+  override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<Settings>): Promise<void> {
+    const count = ev.payload.settings.lights?.length ?? 0;
+    await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    const host = ev.payload.settings.manualHostRequest;
+    if (!host) return;
+    const { manualHostRequest: _request, ...settings } = ev.payload.settings;
+    await ev.action.setSettings(settings as Settings);
+    streamDeck.logger.info(`Adding manually addressed Nanoleaf bulb at ${host}`);
+    try {
+      await this.#manager.addManual(host);
+      await this.#sendDevices("Bulb added. Open Connect to API, then click Pair.");
+    } catch (error) {
+      streamDeck.logger.error(`Manual Nanoleaf add failed: ${String(error)}`);
+      await streamDeck.ui.sendToPropertyInspector({ event: "error", message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  override async onPropertyInspectorDidAppear(_ev: PropertyInspectorDidAppearEvent<Settings>): Promise<void> {
+    this.#propertyInspectorVisible = true;
+    await this.#sendDevices();
+  }
+
+  override onPropertyInspectorDidDisappear(_ev: PropertyInspectorDidDisappearEvent<Settings>): void {
+    this.#propertyInspectorVisible = false;
+  }
+
+  override async onSendToPlugin(ev: SendToPluginEvent<JsonValue, Settings>): Promise<void> {
+    if (!ev.payload || typeof ev.payload !== "object" || Array.isArray(ev.payload)) return;
+    const message = ev.payload as JsonObject;
+    const command = message.command;
+    streamDeck.logger.info(`Property Inspector command received: ${String(command)}`);
+    if (command === "refresh") {
+      await this.#sendDevices();
+      return;
+    }
+    if (command === "pairAvailable") {
+      await streamDeck.ui.sendToPropertyInspector({ event: "status", command });
+      try {
+        await this.#manager.pairAvailable();
+        await this.#sendDevices("Paired successfully; the Nanoleaf app name is now shown.");
+      } catch (error) {
+        await streamDeck.ui.sendToPropertyInspector({ event: "error", message: error instanceof Error ? error.message : String(error) });
+      }
+      return;
+    }
+    if (command === "addManual" && typeof message.host === "string") {
+      try {
+        await this.#manager.addManual(message.host);
+        await this.#sendDevices("Bulb added. Open Connect to API, then click Pair.");
+      } catch (error) {
+        await streamDeck.ui.sendToPropertyInspector({ event: "error", message: error instanceof Error ? error.message : String(error) });
+      }
+      return;
+    }
+    try {
+      if (command === "renameDevice" && typeof message.deviceId === "string" && typeof message.name === "string") {
+        await this.#manager.renameDevice(message.deviceId, message.name);
+        await this.#sendDevices("Bulb nickname saved");
+        return;
+      }
+      if (command === "createGroup" && typeof message.name === "string") {
+        await this.#manager.createGroup(message.name);
+        await this.#sendDevices("Group created");
+        return;
+      }
+      if (command === "renameGroup" && typeof message.groupId === "string" && typeof message.name === "string") {
+        await this.#manager.renameGroup(message.groupId, message.name);
+        await this.#sendDevices("Group renamed");
+        return;
+      }
+      if (command === "setGroupDevices" && typeof message.groupId === "string" && Array.isArray(message.deviceIds)
+        && message.deviceIds.every((id) => typeof id === "string")) {
+        await this.#manager.setGroupDevices(message.groupId, message.deviceIds as string[]);
+        await this.#sendDevices("Group membership saved");
+        return;
+      }
+      if (command === "deleteGroup" && typeof message.groupId === "string") {
+        await this.#manager.deleteGroup(message.groupId);
+        await this.#sendDevices("Group deleted");
+        return;
+      }
+    } catch (error) {
+      await streamDeck.ui.sendToPropertyInspector({ event: "error", message: error instanceof Error ? error.message : String(error) });
+      return;
+    }
+    if ((command !== "pair" && command !== "unpair") || typeof message.deviceId !== "string") return;
+
+    await streamDeck.ui.sendToPropertyInspector({ event: "status", deviceId: message.deviceId, command });
+    try {
+      if (command === "pair") await this.#manager.pair(message.deviceId);
+      else await this.#manager.unpair(message.deviceId);
+      await this.#sendDevices(command === "pair" ? "Pairing successful" : "Bulb unpaired");
+    } catch (error) {
+      streamDeck.logger.error(`${command} failed for ${message.deviceId}: ${String(error)}`);
+      await streamDeck.ui.sendToPropertyInspector({ event: "error", deviceId: message.deviceId, message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  async #sendDevices(message?: string): Promise<void> {
+    const devices = await this.#manager.list() as unknown as JsonObject[];
+    const groups = await this.#manager.listGroups() as unknown as JsonObject[];
+    await streamDeck.ui.sendToPropertyInspector({ event: "devices", devices, groups, ...(message ? { message } : {}) });
+  }
+
+  async #refreshKey(actionInstance: WillAppearEvent<Settings>["action"], programs: Settings["lights"]): Promise<void> {
+    if (!actionInstance.isKey()) return;
+    if (!programs || programs.length === 0) {
+      await actionInstance.setImage(this.#keyImage("unconfigured", "#65d96e"));
+      return;
+    }
+    try {
+      const states = await Promise.all(programs.map((program) => this.#getPower(program.deviceId)));
+      await actionInstance.setImage(this.#keyImage(states.some(Boolean) ? "on" : "off", this.#configuredColour(programs)));
+    } catch (error) {
+      streamDeck.logger.warn(`Unable to refresh key status: ${String(error)}`);
+      await actionInstance.setImage(this.#keyImage("error", "#e0a12e"));
+    }
+  }
+
+  async #getPower(deviceId: string): Promise<boolean> {
+    const cached = this.#powerCache.get(deviceId);
+    if (cached && Date.now() - cached.checkedAt < 5_000) return cached.on;
+    const existing = this.#powerReads.get(deviceId);
+    if (existing) return existing;
+    const read = (async () => {
+      const state = await (await this.#clients.forDevice(deviceId)).getState();
+      this.#powerCache.set(deviceId, { on: state.on.value, checkedAt: Date.now() });
+      return state.on.value;
+    })();
+    this.#powerReads.set(deviceId, read);
+    try {
+      return await read;
+    } finally {
+      this.#powerReads.delete(deviceId);
+    }
+  }
+
+  #configuredColour(programs: NonNullable<Settings["lights"]>): string {
+    return programs[0]?.mode === "hs" && /^#[0-9a-f]{6}$/i.test(programs[0].colorHex ?? "")
+      ? programs[0].colorHex ?? "#65d96e"
+      : "#65d96e";
+  }
+
+  #keyImage(status: "on" | "off" | "error" | "unconfigured", colour: string): string {
+    const fill = status === "off" ? "#3d4541" : colour;
+    const glow = status === "on" ? `<circle cx="72" cy="64" r="52" fill="${colour}" opacity=".18"/>` : "";
+    const badge = status === "error" ? '<path d="M111 18 132 55H90Z" fill="#e0a12e"/><path d="M111 30v12m0 6v1" stroke="#151b18" stroke-width="4" stroke-linecap="round"/>' : "";
+    const mark = status === "unconfigured" ? '<path d="M72 48v32M56 64h32" stroke="#fff" stroke-width="7" stroke-linecap="round"/>' : "";
+    const offMark = status === "off" ? '<path d="M39 35 105 101" stroke="#d7dcda" stroke-width="9" stroke-linecap="round"/><rect x="91" y="108" width="40" height="23" rx="7" fill="#d7dcda"/><text x="111" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#151b18">OFF</text>' : "";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/>${glow}<path d="M72 20a40 40 0 0 0-23 73c6 4 8 9 8 15h30c0-6 2-11 8-15A40 40 0 0 0 72 20Z" fill="${fill}"/><path d="M59 118h26M63 127h18" stroke="${fill}" stroke-width="7" stroke-linecap="round"/>${mark}${badge}${offMark}</svg>`;
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }
+}

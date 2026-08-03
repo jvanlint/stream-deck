@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.jason.nanoleaf",
+  "Name": "Nanoleaf Essentials",
+  "Version": "0.1.0.0",
+  "Author": "Jason",
+  "Description": "Control Nanoleaf Essentials bulbs directly over your local network.",
+  "Category": "Nanoleaf Essentials",
+  "CategoryIcon": "static/imgs/category-icon",
+  "Icon": "static/imgs/plugin-icon",
+  "CodePath": "bin/plugin.js",
+  "PropertyInspectorPath": "ui/apply-scene.html",
+  "SDKVersion": 2,
+  "Software": { "MinimumVersion": "6.6" },
+  "Nodejs": { "Version": "20", "Debug": "enabled" },
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "mac", "MinimumVersion": "12" }
+  ],
+  "Actions": [
+    {
+      "UUID": "com.jason.nanoleaf.apply-scene",
+      "Name": "Apply Light Scene",
+      "Tooltip": "Set each light in a device or group to its configured state.",
+      "Icon": "static/imgs/action-icon",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "static/imgs/action-key", "TitleAlignment": "middle", "FontSize": 14 }]
+    }
+  ]
+}
+

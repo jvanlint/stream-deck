@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Apply Light Scene</title>
+  <link rel="stylesheet" href="property-inspector.css">
+</head>
+<body>
+  <main>
+    <h1>Apply Light Scene</h1>
+    <section class="scene-section">
+      <h2>This Stream Deck key</h2>
+      <p class="scope-help">Choose the bulb or group controlled by this specific key. Each key keeps its own colour and brightness settings.</p>
+      <label for="target">This key controls</label>
+      <select id="target"><option value="">Select a paired bulb or group</option></select>
+      <div id="programs"></div>
+      <p id="no-target" class="help">Choose what this key should control.</p>
+    </section>
+    <details id="plugin-setup" class="plugin-setup">
+    <summary><strong>Plugin setup</strong><span>Shared across all Nanoleaf keys</span></summary>
+    <section class="manager-section">
+    <p class="notice">Pairing, bulb nicknames, and groups are global. Pair each physical bulb once; every Stream Deck key can then select it above.</p>
+    <button id="pair-open" class="primary wide" type="button">Pair bulb with open window</button>
+    <div class="toolbar">
+      <span id="summary">Searching for Nanoleaf bulbs…</span>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+    <p id="message" role="status" aria-live="polite"></p>
+    <section id="devices" aria-label="Discovered Nanoleaf bulbs"></section>
+    <p id="empty" class="empty" hidden>No bulbs found yet. Check that Wi-Fi client isolation is off and both devices are on the same LAN.</p>
+    <section class="manager-section">
+      <h2>Groups</h2>
+      <div class="create-row">
+        <input id="group-name" type="text" maxlength="40" placeholder="Office">
+        <button id="create-group" class="primary" type="button">Create</button>
+      </div>
+      <div id="groups"></div>
+      <p id="no-groups" class="empty">No groups created yet.</p>
+    </section>
+    <details>
+      <summary>Bulb not discovered?</summary>
+      <div class="manual">
+        <label for="host">IP address</label>
+        <input id="host" type="text" inputmode="decimal" placeholder="192.168.1.109">
+        <button id="add-manual" class="primary" type="button">Add bulb</button>
+      </div>
+    </details>
+    </section>
+    </details>
+  </main>
+  <script src="property-inspector.js"></script>
+</body>
+</html>
