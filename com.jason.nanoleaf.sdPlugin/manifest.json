@@ -23,9 +23,17 @@
       "Name": "Apply Light Scene",
       "Tooltip": "Set each light in a device or group to its configured state.",
       "Icon": "static/imgs/action-icon",
-      "Controllers": ["Keypad"],
+      "Controllers": ["Keypad", "Encoder"],
+      "Encoder": {
+        "layout": "$B1",
+        "StackColor": "#65D96E",
+        "TriggerDescription": {
+          "Push": "Toggle light",
+          "Rotate": "Adjust brightness",
+          "Touch": "Toggle light"
+        }
+      },
       "States": [{ "Image": "static/imgs/action-key", "TitleAlignment": "middle", "FontSize": 14 }]
     }
   ]
 }
-

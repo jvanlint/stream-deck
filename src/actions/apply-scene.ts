@@ -1,11 +1,14 @@
 import streamDeck, {
   action,
+  type DialDownEvent,
+  type DialRotateEvent,
   type DidReceiveSettingsEvent,
   type KeyDownEvent,
   type PropertyInspectorDidAppearEvent,
   type PropertyInspectorDidDisappearEvent,
   type SendToPluginEvent,
   SingletonAction,
+  type TouchTapEvent,
   type WillAppearEvent
   , type WillDisappearEvent
 } from "@elgato/streamdeck";
@@ -23,8 +26,14 @@ export class ApplySceneAction extends SingletonAction<Settings> {
   readonly #clients: NanoleafClientFactory;
   #propertyInspectorVisible = false;
   readonly #statusTimers = new Map<string, ReturnType<typeof setInterval>>();
-  readonly #powerCache = new Map<string, { on: boolean; checkedAt: number }>();
-  readonly #powerReads = new Map<string, Promise<boolean>>();
+  readonly #stateCache = new Map<string, { on: boolean; brightness: number; checkedAt: number }>();
+  readonly #stateReads = new Map<string, Promise<{ on: boolean; brightness: number }>>();
+  readonly #dialPending = new Map<string, {
+    ticks: number;
+    timer: ReturnType<typeof setTimeout>;
+    action: DialRotateEvent<Settings>["action"];
+    settings: Settings;
+  }>();
 
   constructor(manager: NanoleafDeviceManager, clients: NanoleafClientFactory) {
     super();
@@ -36,11 +45,11 @@ export class ApplySceneAction extends SingletonAction<Settings> {
   override async onWillAppear(ev: WillAppearEvent<Settings>): Promise<void> {
     const count = ev.payload.settings.lights?.length ?? 0;
     await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
-    await this.#refreshKey(ev.action, ev.payload.settings.lights ?? []);
+    await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const existing = this.#statusTimers.get(ev.action.id);
     if (existing) clearInterval(existing);
     this.#statusTimers.set(ev.action.id, setInterval(() => {
-      void ev.action.getSettings<Settings>().then((settings) => this.#refreshKey(ev.action, settings.lights ?? []));
+      void ev.action.getSettings<Settings>().then((settings) => this.#refreshAction(ev.action, settings.lights ?? []));
     }, 10_000));
   }
 
@@ -48,38 +57,108 @@ export class ApplySceneAction extends SingletonAction<Settings> {
     const timer = this.#statusTimers.get(ev.action.id);
     if (timer) clearInterval(timer);
     this.#statusTimers.delete(ev.action.id);
+    const pending = this.#dialPending.get(ev.action.id);
+    if (pending) clearTimeout(pending.timer);
+    this.#dialPending.delete(ev.action.id);
   }
 
   override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
-    const pressedAt = performance.now();
     const programs = ev.payload.settings.lights ?? [];
+    await this.#toggle(ev.action, programs, "Button");
+  }
+
+  override async onDialDown(ev: DialDownEvent<Settings>): Promise<void> {
+    await this.#toggle(ev.action, ev.payload.settings.lights ?? [], "Dial press");
+  }
+
+  override async onTouchTap(ev: TouchTapEvent<Settings>): Promise<void> {
+    await this.#toggle(ev.action, ev.payload.settings.lights ?? [], "Touch tap");
+  }
+
+  override onDialRotate(ev: DialRotateEvent<Settings>): void {
+    const existing = this.#dialPending.get(ev.action.id);
+    if (existing) clearTimeout(existing.timer);
+    const pending = {
+      ticks: (existing?.ticks ?? 0) + ev.payload.ticks,
+      action: ev.action,
+      settings: ev.payload.settings,
+      timer: setTimeout(() => { void this.#applyDialRotation(ev.action.id); }, 120)
+    };
+    this.#dialPending.set(ev.action.id, pending);
+  }
+
+  async #toggle(
+    actionInstance: KeyDownEvent<Settings>["action"] | DialDownEvent<Settings>["action"] | TouchTapEvent<Settings>["action"],
+    programs: NonNullable<Settings["lights"]>,
+    source: string
+  ): Promise<void> {
+    const pressedAt = performance.now();
     if (programs.length === 0) {
       streamDeck.logger.warn("Apply Scene pressed before any lights were configured");
-      await ev.action.showAlert();
+      await actionInstance.showAlert();
       return;
     }
     const result = await toggleScene(programs, this.#clients);
     streamDeck.logger.info(
-      `Button API cycle completed in ${Math.round(performance.now() - pressedAt)}ms `
+      `${source} API cycle completed in ${Math.round(performance.now() - pressedAt)}ms `
       + `(${result.mode}, ${result.succeeded.length} succeeded, ${result.failed.length} failed)`
     );
     const on = result.mode === "on";
-    for (const deviceId of result.succeeded) this.#powerCache.set(deviceId, { on, checkedAt: Date.now() });
+    for (const deviceId of result.succeeded) {
+      const previous = this.#stateCache.get(deviceId);
+      const program = programs.find((item) => item.deviceId === deviceId);
+      this.#stateCache.set(deviceId, {
+        on,
+        brightness: on ? program?.brightness ?? previous?.brightness ?? 100 : previous?.brightness ?? program?.brightness ?? 100,
+        checkedAt: Date.now()
+      });
+    }
     if (result.failed.length === 0) {
       streamDeck.logger.info(`Scene applied to ${result.succeeded.length} light(s)`);
-      if (ev.action.isKey()) await ev.action.setImage(this.#keyImage(result.mode, this.#configuredColour(programs)));
-      await ev.action.showOk();
+      if (actionInstance.isKey()) await actionInstance.setImage(this.#keyImage(result.mode, this.#configuredColour(programs)));
+      if (actionInstance.isDial()) await this.#refreshDial(actionInstance, programs);
+      if (actionInstance.isKey()) await actionInstance.showOk();
     } else {
       for (const failure of result.failed) streamDeck.logger.error(`Scene update failed for ${failure.deviceId}: ${String(failure.error)}`);
-      await ev.action.showAlert();
+      await actionInstance.showAlert();
     }
     // toggleScene already confirmed the requested state. Avoid immediately issuing
     // another GET, which can overwhelm slower bulbs and delay the icon update.
   }
 
+  async #applyDialRotation(actionId: string): Promise<void> {
+    const pending = this.#dialPending.get(actionId);
+    if (!pending) return;
+    this.#dialPending.delete(actionId);
+    const programs = pending.settings.lights ?? [];
+    if (programs.length === 0) {
+      await pending.action.showAlert();
+      return;
+    }
+    const delta = pending.ticks * 5;
+    const updated = programs.map((program) => ({
+      ...program,
+      power: true,
+      brightness: Math.max(1, Math.min(100, (program.brightness ?? 100) + delta))
+    }));
+    const results = await Promise.allSettled(updated.map(async (program) => {
+      const client = await this.#clients.forDevice(program.deviceId);
+      await client.updateState({ on: { value: true }, brightness: { value: program.brightness ?? 100 } });
+      this.#stateCache.set(program.deviceId, { on: true, brightness: program.brightness ?? 100, checkedAt: Date.now() });
+    }));
+    if (results.some((result) => result.status === "rejected")) {
+      await pending.action.showAlert();
+      return;
+    }
+    const settings = { ...pending.settings, lights: updated } as Settings;
+    await pending.action.setSettings(settings);
+    await this.#refreshDial(pending.action, updated);
+  }
+
   override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<Settings>): Promise<void> {
     const count = ev.payload.settings.lights?.length ?? 0;
     await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const host = ev.payload.settings.manualHostRequest;
     if (!host) return;
     const { manualHostRequest: _request, ...settings } = ev.payload.settings;
@@ -181,36 +260,61 @@ export class ApplySceneAction extends SingletonAction<Settings> {
     await streamDeck.ui.sendToPropertyInspector({ event: "devices", devices, groups, ...(message ? { message } : {}) });
   }
 
-  async #refreshKey(actionInstance: WillAppearEvent<Settings>["action"], programs: Settings["lights"]): Promise<void> {
+  async #refreshAction(actionInstance: WillAppearEvent<Settings>["action"], programs: Settings["lights"]): Promise<void> {
+    if (actionInstance.isDial()) {
+      await this.#refreshDial(actionInstance, programs ?? []);
+      return;
+    }
     if (!actionInstance.isKey()) return;
     if (!programs || programs.length === 0) {
       await actionInstance.setImage(this.#keyImage("unconfigured", "#65d96e"));
       return;
     }
     try {
-      const states = await Promise.all(programs.map((program) => this.#getPower(program.deviceId)));
-      await actionInstance.setImage(this.#keyImage(states.some(Boolean) ? "on" : "off", this.#configuredColour(programs)));
+      const states = await Promise.all(programs.map((program) => this.#getStatus(program.deviceId)));
+      await actionInstance.setImage(this.#keyImage(states.some((state) => state.on) ? "on" : "off", this.#configuredColour(programs)));
     } catch (error) {
       streamDeck.logger.warn(`Unable to refresh key status: ${String(error)}`);
       await actionInstance.setImage(this.#keyImage("error", "#e0a12e"));
     }
   }
 
-  async #getPower(deviceId: string): Promise<boolean> {
-    const cached = this.#powerCache.get(deviceId);
-    if (cached && Date.now() - cached.checkedAt < 5_000) return cached.on;
-    const existing = this.#powerReads.get(deviceId);
+  async #refreshDial(actionInstance: DialDownEvent<Settings>["action"], programs: NonNullable<Settings["lights"]>): Promise<void> {
+    if (programs.length === 0) {
+      await actionInstance.setFeedback({ title: "Nanoleaf", value: "Configure", indicator: 0 });
+      return;
+    }
+    try {
+      const states = await Promise.all(programs.map((program) => this.#getStatus(program.deviceId)));
+      const on = states.some((state) => state.on);
+      const brightness = Math.round(states.reduce((sum, state) => sum + state.brightness, 0) / states.length);
+      await actionInstance.setFeedback({
+        title: programs.length === 1 ? "Nanoleaf light" : `${programs.length} Nanoleaf lights`,
+        value: on ? `${brightness}%` : "OFF",
+        indicator: on ? brightness : 0
+      });
+    } catch (error) {
+      streamDeck.logger.warn(`Unable to refresh dial status: ${String(error)}`);
+      await actionInstance.setFeedback({ title: "Nanoleaf", value: "Unavailable", indicator: 0 });
+    }
+  }
+
+  async #getStatus(deviceId: string): Promise<{ on: boolean; brightness: number }> {
+    const cached = this.#stateCache.get(deviceId);
+    if (cached && Date.now() - cached.checkedAt < 5_000) return cached;
+    const existing = this.#stateReads.get(deviceId);
     if (existing) return existing;
     const read = (async () => {
       const state = await (await this.#clients.forDevice(deviceId)).getState();
-      this.#powerCache.set(deviceId, { on: state.on.value, checkedAt: Date.now() });
-      return state.on.value;
+      const status = { on: state.on.value, brightness: state.brightness.value };
+      this.#stateCache.set(deviceId, { ...status, checkedAt: Date.now() });
+      return status;
     })();
-    this.#powerReads.set(deviceId, read);
+    this.#stateReads.set(deviceId, read);
     try {
       return await read;
     } finally {
-      this.#powerReads.delete(deviceId);
+      this.#stateReads.delete(deviceId);
     }
   }
 

@@ -20632,8 +20632,9 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   #clients;
   #propertyInspectorVisible = false;
   #statusTimers = /* @__PURE__ */ new Map();
-  #powerCache = /* @__PURE__ */ new Map();
-  #powerReads = /* @__PURE__ */ new Map();
+  #stateCache = /* @__PURE__ */ new Map();
+  #stateReads = /* @__PURE__ */ new Map();
+  #dialPending = /* @__PURE__ */ new Map();
   constructor(manager2, clients2) {
     super();
     this.#manager = manager2;
@@ -20645,44 +20646,107 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   async onWillAppear(ev) {
     const count = ev.payload.settings.lights?.length ?? 0;
     await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
-    await this.#refreshKey(ev.action, ev.payload.settings.lights ?? []);
+    await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const existing = this.#statusTimers.get(ev.action.id);
     if (existing) clearInterval(existing);
     this.#statusTimers.set(ev.action.id, setInterval(() => {
-      void ev.action.getSettings().then((settings2) => this.#refreshKey(ev.action, settings2.lights ?? []));
+      void ev.action.getSettings().then((settings2) => this.#refreshAction(ev.action, settings2.lights ?? []));
     }, 1e4));
   }
   onWillDisappear(ev) {
     const timer = this.#statusTimers.get(ev.action.id);
     if (timer) clearInterval(timer);
     this.#statusTimers.delete(ev.action.id);
+    const pending = this.#dialPending.get(ev.action.id);
+    if (pending) clearTimeout(pending.timer);
+    this.#dialPending.delete(ev.action.id);
   }
   async onKeyDown(ev) {
-    const pressedAt = performance.now();
     const programs = ev.payload.settings.lights ?? [];
+    await this.#toggle(ev.action, programs, "Button");
+  }
+  async onDialDown(ev) {
+    await this.#toggle(ev.action, ev.payload.settings.lights ?? [], "Dial press");
+  }
+  async onTouchTap(ev) {
+    await this.#toggle(ev.action, ev.payload.settings.lights ?? [], "Touch tap");
+  }
+  onDialRotate(ev) {
+    const existing = this.#dialPending.get(ev.action.id);
+    if (existing) clearTimeout(existing.timer);
+    const pending = {
+      ticks: (existing?.ticks ?? 0) + ev.payload.ticks,
+      action: ev.action,
+      settings: ev.payload.settings,
+      timer: setTimeout(() => {
+        void this.#applyDialRotation(ev.action.id);
+      }, 120)
+    };
+    this.#dialPending.set(ev.action.id, pending);
+  }
+  async #toggle(actionInstance, programs, source) {
+    const pressedAt = performance.now();
     if (programs.length === 0) {
       plugin_default.logger.warn("Apply Scene pressed before any lights were configured");
-      await ev.action.showAlert();
+      await actionInstance.showAlert();
       return;
     }
     const result = await toggleScene(programs, this.#clients);
     plugin_default.logger.info(
-      `Button API cycle completed in ${Math.round(performance.now() - pressedAt)}ms (${result.mode}, ${result.succeeded.length} succeeded, ${result.failed.length} failed)`
+      `${source} API cycle completed in ${Math.round(performance.now() - pressedAt)}ms (${result.mode}, ${result.succeeded.length} succeeded, ${result.failed.length} failed)`
     );
     const on = result.mode === "on";
-    for (const deviceId of result.succeeded) this.#powerCache.set(deviceId, { on, checkedAt: Date.now() });
+    for (const deviceId of result.succeeded) {
+      const previous = this.#stateCache.get(deviceId);
+      const program = programs.find((item) => item.deviceId === deviceId);
+      this.#stateCache.set(deviceId, {
+        on,
+        brightness: on ? program?.brightness ?? previous?.brightness ?? 100 : previous?.brightness ?? program?.brightness ?? 100,
+        checkedAt: Date.now()
+      });
+    }
     if (result.failed.length === 0) {
       plugin_default.logger.info(`Scene applied to ${result.succeeded.length} light(s)`);
-      if (ev.action.isKey()) await ev.action.setImage(this.#keyImage(result.mode, this.#configuredColour(programs)));
-      await ev.action.showOk();
+      if (actionInstance.isKey()) await actionInstance.setImage(this.#keyImage(result.mode, this.#configuredColour(programs)));
+      if (actionInstance.isDial()) await this.#refreshDial(actionInstance, programs);
+      if (actionInstance.isKey()) await actionInstance.showOk();
     } else {
       for (const failure of result.failed) plugin_default.logger.error(`Scene update failed for ${failure.deviceId}: ${String(failure.error)}`);
-      await ev.action.showAlert();
+      await actionInstance.showAlert();
     }
+  }
+  async #applyDialRotation(actionId) {
+    const pending = this.#dialPending.get(actionId);
+    if (!pending) return;
+    this.#dialPending.delete(actionId);
+    const programs = pending.settings.lights ?? [];
+    if (programs.length === 0) {
+      await pending.action.showAlert();
+      return;
+    }
+    const delta = pending.ticks * 5;
+    const updated = programs.map((program) => ({
+      ...program,
+      power: true,
+      brightness: Math.max(1, Math.min(100, (program.brightness ?? 100) + delta))
+    }));
+    const results = await Promise.allSettled(updated.map(async (program) => {
+      const client = await this.#clients.forDevice(program.deviceId);
+      await client.updateState({ on: { value: true }, brightness: { value: program.brightness ?? 100 } });
+      this.#stateCache.set(program.deviceId, { on: true, brightness: program.brightness ?? 100, checkedAt: Date.now() });
+    }));
+    if (results.some((result) => result.status === "rejected")) {
+      await pending.action.showAlert();
+      return;
+    }
+    const settings2 = { ...pending.settings, lights: updated };
+    await pending.action.setSettings(settings2);
+    await this.#refreshDial(pending.action, updated);
   }
   async onDidReceiveSettings(ev) {
     const count = ev.payload.settings.lights?.length ?? 0;
     await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const host = ev.payload.settings.manualHostRequest;
     if (!host) return;
     const { manualHostRequest: _request, ...settings2 } = ev.payload.settings;
@@ -20777,35 +20841,59 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     const groups2 = await this.#manager.listGroups();
     await plugin_default.ui.sendToPropertyInspector({ event: "devices", devices: devices2, groups: groups2, ...message ? { message } : {} });
   }
-  async #refreshKey(actionInstance, programs) {
+  async #refreshAction(actionInstance, programs) {
+    if (actionInstance.isDial()) {
+      await this.#refreshDial(actionInstance, programs ?? []);
+      return;
+    }
     if (!actionInstance.isKey()) return;
     if (!programs || programs.length === 0) {
       await actionInstance.setImage(this.#keyImage("unconfigured", "#65d96e"));
       return;
     }
     try {
-      const states = await Promise.all(programs.map((program) => this.#getPower(program.deviceId)));
-      await actionInstance.setImage(this.#keyImage(states.some(Boolean) ? "on" : "off", this.#configuredColour(programs)));
+      const states = await Promise.all(programs.map((program) => this.#getStatus(program.deviceId)));
+      await actionInstance.setImage(this.#keyImage(states.some((state) => state.on) ? "on" : "off", this.#configuredColour(programs)));
     } catch (error40) {
       plugin_default.logger.warn(`Unable to refresh key status: ${String(error40)}`);
       await actionInstance.setImage(this.#keyImage("error", "#e0a12e"));
     }
   }
-  async #getPower(deviceId) {
-    const cached2 = this.#powerCache.get(deviceId);
-    if (cached2 && Date.now() - cached2.checkedAt < 5e3) return cached2.on;
-    const existing = this.#powerReads.get(deviceId);
+  async #refreshDial(actionInstance, programs) {
+    if (programs.length === 0) {
+      await actionInstance.setFeedback({ title: "Nanoleaf", value: "Configure", indicator: 0 });
+      return;
+    }
+    try {
+      const states = await Promise.all(programs.map((program) => this.#getStatus(program.deviceId)));
+      const on = states.some((state) => state.on);
+      const brightness = Math.round(states.reduce((sum, state) => sum + state.brightness, 0) / states.length);
+      await actionInstance.setFeedback({
+        title: programs.length === 1 ? "Nanoleaf light" : `${programs.length} Nanoleaf lights`,
+        value: on ? `${brightness}%` : "OFF",
+        indicator: on ? brightness : 0
+      });
+    } catch (error40) {
+      plugin_default.logger.warn(`Unable to refresh dial status: ${String(error40)}`);
+      await actionInstance.setFeedback({ title: "Nanoleaf", value: "Unavailable", indicator: 0 });
+    }
+  }
+  async #getStatus(deviceId) {
+    const cached2 = this.#stateCache.get(deviceId);
+    if (cached2 && Date.now() - cached2.checkedAt < 5e3) return cached2;
+    const existing = this.#stateReads.get(deviceId);
     if (existing) return existing;
     const read = (async () => {
       const state = await (await this.#clients.forDevice(deviceId)).getState();
-      this.#powerCache.set(deviceId, { on: state.on.value, checkedAt: Date.now() });
-      return state.on.value;
+      const status = { on: state.on.value, brightness: state.brightness.value };
+      this.#stateCache.set(deviceId, { ...status, checkedAt: Date.now() });
+      return status;
     })();
-    this.#powerReads.set(deviceId, read);
+    this.#stateReads.set(deviceId, read);
     try {
       return await read;
     } finally {
-      this.#powerReads.delete(deviceId);
+      this.#stateReads.delete(deviceId);
     }
   }
   #configuredColour(programs) {
