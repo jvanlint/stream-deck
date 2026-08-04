@@ -63,7 +63,7 @@ function run(command: string, args: string[], input?: string): Promise<string> {
 const DPAPI_LOAD = "Add-Type -AssemblyName System.Security;";
 const DPAPI_PROTECT = `${DPAPI_LOAD}$v=[Console]::In.ReadToEnd();$b=[Text.Encoding]::UTF8.GetBytes($v);$p=[Security.Cryptography.ProtectedData]::Protect($b,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser);[Console]::Out.Write([Convert]::ToBase64String($p))`;
 const DPAPI_UNPROTECT = `${DPAPI_LOAD}$v=[Console]::In.ReadToEnd();$b=[Convert]::FromBase64String($v);$p=[Security.Cryptography.ProtectedData]::Unprotect($b,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser);[Console]::Out.Write([Text.Encoding]::UTF8.GetString($p))`;
-const KEYCHAIN_SERVICE = "com.jason.nanoleaf";
+const KEYCHAIN_SERVICE = "com.deadfrogstudios.nanoleaflan";
 
 /** Stores tokens with Windows DPAPI or macOS Keychain; tokens never enter action settings. */
 export class PlatformTokenStore implements TokenStore {

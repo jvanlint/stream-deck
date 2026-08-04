@@ -1,4 +1,4 @@
-import type { LightProgram } from "../models.js";
+import type { LightProgram, NanoleafState } from "../models.js";
 import type { NanoleafClientFactory } from "./client.js";
 import { toUpdatePayload } from "./state.js";
 
@@ -28,7 +28,22 @@ export async function applyScene(programs: LightProgram[], clients: NanoleafClie
   return { succeeded, failed };
 }
 
-/** Reads current state, then turns all targets off if any are on; otherwise applies the configured scene. */
+function matchesProgram(state: NanoleafState, program: LightProgram): boolean {
+  if (!state.on.value) return false;
+  const expected = toUpdatePayload({ ...program, power: true } as LightProgram);
+  if (expected.brightness && state.brightness?.value !== expected.brightness.value) return false;
+  if (program.mode === "hs") {
+    return state.colorMode === "hs"
+      && state.hue?.value === expected.hue?.value
+      && state.sat?.value === expected.sat?.value;
+  }
+  if (program.mode === "ct") {
+    return state.colorMode === "ct" && state.ct?.value === expected.ct?.value;
+  }
+  return true;
+}
+
+/** Turns targets off only when they already match this scene; otherwise applies it. */
 export async function toggleScene(programs: LightProgram[], clients: NanoleafClientFactory): Promise<SceneToggleResult> {
   const resolved = await Promise.allSettled(programs.map(async (program) => ({
     program,
@@ -46,7 +61,8 @@ export async function toggleScene(programs: LightProgram[], clients: NanoleafCli
     : []);
   if (stateFailures.length > 0) return { mode: "off", succeeded: [], failed: stateFailures };
 
-  const turnOff = states.some((result) => result.status === "fulfilled" && result.value.on.value);
+  const turnOff = states.every((result, index) => result.status === "fulfilled"
+    && matchesProgram(result.value, entries[index]!.program));
   const updates = await Promise.allSettled(entries.map(({ program, client }) => client.updateState(
     turnOff ? { on: { value: false } } : toUpdatePayload({ ...program, power: true } as LightProgram)
   )));

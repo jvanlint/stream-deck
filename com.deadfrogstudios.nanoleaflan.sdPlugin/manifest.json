@@ -1,12 +1,12 @@
 {
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-  "UUID": "com.jason.nanoleaf",
-  "Name": "Nanoleaf Essentials",
+  "UUID": "com.deadfrogstudios.nanoleaflan",
+  "Name": "Nanoleaf LAN",
   "Version": "0.1.0.0",
-  "Author": "Jason",
-  "Description": "Control Nanoleaf Essentials bulbs directly over your local network.",
-  "Category": "Nanoleaf Essentials",
-  "CategoryIcon": "static/imgs/category-icon",
+  "Author": "Dead Frog Studios",
+  "Description": "Control Nanoleaf Essentials bulbs directly over your local network with Nanoleaf LAN.",
+  "Category": "Nanoleaf LAN",
+  "CategoryIcon": "static/imgs/nanoleaf-bulb",
   "Icon": "static/imgs/plugin-icon",
   "CodePath": "bin/plugin.js",
   "PropertyInspectorPath": "ui/apply-scene.html",
@@ -19,10 +19,10 @@
   ],
   "Actions": [
     {
-      "UUID": "com.jason.nanoleaf.apply-scene",
+      "UUID": "com.deadfrogstudios.nanoleaflan.apply-scene",
       "Name": "Apply Light Scene",
       "Tooltip": "Set each light in a device or group to its configured state.",
-      "Icon": "static/imgs/action-icon",
+      "Icon": "static/imgs/nanoleaf-bulb",
       "Controllers": ["Keypad", "Encoder"],
       "Encoder": {
         "layout": "$B1",
@@ -33,7 +33,7 @@
           "Touch": "Toggle light"
         }
       },
-      "States": [{ "Image": "static/imgs/action-key", "TitleAlignment": "middle", "FontSize": 14 }]
+      "States": [{ "Image": "static/imgs/nanoleaf-bulb", "TitleAlignment": "middle", "FontSize": 14 }]
     }
   ]
 }

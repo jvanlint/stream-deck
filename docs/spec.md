@@ -1,4 +1,4 @@
-# Nanoleaf Stream Deck Plugin Specification
+# Nanoleaf LAN Plugin Specification
 
 ## Overview
 

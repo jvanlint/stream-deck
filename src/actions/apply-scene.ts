@@ -17,10 +17,12 @@ import type { SceneActionSettings } from "../models.js";
 import type { NanoleafClientFactory } from "../nanoleaf/client.js";
 import type { NanoleafDeviceManager } from "../nanoleaf/device-manager.js";
 import { toggleScene } from "../nanoleaf/scene.js";
+import nanoleafBulbSvg from "../../com.deadfrogstudios.nanoleaflan.sdPlugin/static/imgs/nanoleaf-bulb.svg";
 
 type Settings = SceneActionSettings & JsonObject & { manualHostRequest?: string };
+const NANOLEAF_BULB_PATH = /<path[^>]*\sd="([^"]+)"/.exec(nanoleafBulbSvg)?.[1] ?? "";
 
-@action({ UUID: "com.jason.nanoleaf.apply-scene" })
+@action({ UUID: "com.deadfrogstudios.nanoleaflan.apply-scene" })
 export class ApplySceneAction extends SingletonAction<Settings> {
   readonly #manager: NanoleafDeviceManager;
   readonly #clients: NanoleafClientFactory;
@@ -281,7 +283,12 @@ export class ApplySceneAction extends SingletonAction<Settings> {
 
   async #refreshDial(actionInstance: DialDownEvent<Settings>["action"], programs: NonNullable<Settings["lights"]>): Promise<void> {
     if (programs.length === 0) {
-      await actionInstance.setFeedback({ title: "Nanoleaf", value: "Configure", indicator: 0 });
+      await actionInstance.setFeedback({
+        title: "Nanoleaf",
+        value: "Configure",
+        indicator: 0,
+        icon: this.#dialIcon("#65d96e")
+      });
       return;
     }
     try {
@@ -291,11 +298,17 @@ export class ApplySceneAction extends SingletonAction<Settings> {
       await actionInstance.setFeedback({
         title: programs.length === 1 ? "Nanoleaf light" : `${programs.length} Nanoleaf lights`,
         value: on ? `${brightness}%` : "OFF",
-        indicator: on ? brightness : 0
+        indicator: on ? brightness : 0,
+        icon: this.#dialIcon(on ? this.#configuredColour(programs) : "#3d4541")
       });
     } catch (error) {
       streamDeck.logger.warn(`Unable to refresh dial status: ${String(error)}`);
-      await actionInstance.setFeedback({ title: "Nanoleaf", value: "Unavailable", indicator: 0 });
+      await actionInstance.setFeedback({
+        title: "Nanoleaf",
+        value: "Unavailable",
+        indicator: 0,
+        icon: this.#dialIcon("#e0a12e")
+      });
     }
   }
 
@@ -324,13 +337,17 @@ export class ApplySceneAction extends SingletonAction<Settings> {
       : "#65d96e";
   }
 
+  #dialIcon(colour: string): string {
+    return nanoleafBulbSvg.replace("#ffffff", colour);
+  }
+
   #keyImage(status: "on" | "off" | "error" | "unconfigured", colour: string): string {
     const fill = status === "off" ? "#3d4541" : colour;
     const glow = status === "on" ? `<circle cx="72" cy="64" r="52" fill="${colour}" opacity=".18"/>` : "";
     const badge = status === "error" ? '<path d="M111 18 132 55H90Z" fill="#e0a12e"/><path d="M111 30v12m0 6v1" stroke="#151b18" stroke-width="4" stroke-linecap="round"/>' : "";
     const mark = status === "unconfigured" ? '<path d="M72 48v32M56 64h32" stroke="#fff" stroke-width="7" stroke-linecap="round"/>' : "";
     const offMark = status === "off" ? '<path d="M39 35 105 101" stroke="#d7dcda" stroke-width="9" stroke-linecap="round"/><rect x="91" y="108" width="40" height="23" rx="7" fill="#d7dcda"/><text x="111" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#151b18">OFF</text>' : "";
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/>${glow}<path d="M72 20a40 40 0 0 0-23 73c6 4 8 9 8 15h30c0-6 2-11 8-15A40 40 0 0 0 72 20Z" fill="${fill}"/><path d="M59 118h26M63 127h18" stroke="${fill}" stroke-width="7" stroke-linecap="round"/>${mark}${badge}${offMark}</svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/>${glow}<path d="${NANOLEAF_BULB_PATH}" transform="scale(6)" fill="${fill}"/>${mark}${badge}${offMark}</svg>`;
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
   }
 }

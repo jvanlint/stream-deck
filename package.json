@@ -1,17 +1,22 @@
 {
-  "name": "nanoleaf-stream-deck",
+  "name": "nanoleaf-lan",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Local-first Stream Deck control for Nanoleaf Essentials bulbs",
+  "author": {
+    "name": "Dead Frog Studios",
+    "url": "https://deadfrogstudios.com"
+  },
+  "homepage": "https://deadfrogstudios.com",
   "scripts": {
-    "clean": "rimraf dist com.jason.nanoleaf.sdPlugin/bin",
+    "clean": "rimraf dist com.deadfrogstudios.nanoleaflan.sdPlugin/bin",
     "build": "npm run clean && tsc --noEmit && node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate": "streamdeck validate com.jason.nanoleaf.sdPlugin",
-    "pack": "npm run build && streamdeck pack com.jason.nanoleaf.sdPlugin"
+    "validate": "streamdeck validate com.deadfrogstudios.nanoleaflan.sdPlugin",
+    "pack": "npm run build && streamdeck pack com.deadfrogstudios.nanoleaflan.sdPlugin"
   },
   "dependencies": {
     "@elgato/streamdeck": "^2.0.0",

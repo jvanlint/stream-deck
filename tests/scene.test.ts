@@ -33,12 +33,17 @@ describe("scene execution", () => {
     expect(result.failed).toMatchObject([{ deviceId: "bad" }]);
   });
 
-  it("turns every target off when any member is currently on", async () => {
+  it("turns every target off when every member already matches the configured scene", async () => {
     const updates: Record<string, ReturnType<typeof vi.fn>> = {};
     const clients = {
       async forDevice(id: string) {
         updates[id] = vi.fn();
-        return { getState: async () => ({ on: { value: id === "left" } }), updateState: updates[id] };
+        return {
+          getState: async () => id === "left"
+            ? { on: { value: true }, colorMode: "hs", hue: { value: 0 }, sat: { value: 100 } }
+            : { on: { value: true }, colorMode: "ct", ct: { value: 4000 } },
+          updateState: updates[id]
+        };
       }
     } as unknown as NanoleafClientFactory;
     const result = await toggleScene([
@@ -48,6 +53,36 @@ describe("scene execution", () => {
     expect(result.mode).toBe("off");
     expect(updates.left).toHaveBeenCalledWith({ on: { value: false } });
     expect(updates.right).toHaveBeenCalledWith({ on: { value: false } });
+  });
+
+  it("changes an on bulb immediately when the pressed button has a different colour", async () => {
+    const updateState = vi.fn();
+    const clients = {
+      async forDevice() {
+        return {
+          getState: async () => ({
+            on: { value: true },
+            brightness: { value: 100 },
+            colorMode: "hs",
+            hue: { value: 0 },
+            sat: { value: 100 }
+          }),
+          updateState
+        };
+      }
+    } as unknown as NanoleafClientFactory;
+
+    const result = await toggleScene([
+      { deviceId: "bulb", power: true, brightness: 100, mode: "hs", hue: 120, sat: 100 }
+    ], clients);
+
+    expect(result.mode).toBe("on");
+    expect(updateState).toHaveBeenCalledWith({
+      on: { value: true },
+      brightness: { value: 100 },
+      hue: { value: 120 },
+      sat: { value: 100 }
+    });
   });
 
   it("applies configured settings when every target is off", async () => {
