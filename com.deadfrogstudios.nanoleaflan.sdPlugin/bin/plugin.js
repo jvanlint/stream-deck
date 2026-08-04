@@ -20661,7 +20661,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   }
   async onWillAppear(ev) {
     const count = ev.payload.settings.lights?.length ?? 0;
-    await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
     await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const existing = this.#statusTimers.get(ev.action.id);
     if (existing) clearInterval(existing);
@@ -20761,7 +20761,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   }
   async onDidReceiveSettings(ev) {
     const count = ev.payload.settings.lights?.length ?? 0;
-    await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
     await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const host = ev.payload.settings.manualHostRequest;
     if (!host) return;
@@ -20878,7 +20878,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   async #refreshDial(actionInstance, programs) {
     if (programs.length === 0) {
       await actionInstance.setFeedback({
-        title: "Nanoleaf",
+        title: "Nanoleaf LAN",
         value: "Configure",
         indicator: 0,
         icon: this.#dialIcon("#65d96e")
@@ -20890,7 +20890,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
       const on = states.some((state) => state.on);
       const brightness = Math.round(states.reduce((sum, state) => sum + state.brightness, 0) / states.length);
       await actionInstance.setFeedback({
-        title: programs.length === 1 ? "Nanoleaf light" : `${programs.length} Nanoleaf lights`,
+        title: await this.#dialName(programs),
         value: on ? `${brightness}%` : "OFF",
         indicator: on ? brightness : 0,
         icon: this.#dialIcon(on ? this.#configuredColour(programs) : "#3d4541")
@@ -20898,7 +20898,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     } catch (error40) {
       plugin_default.logger.warn(`Unable to refresh dial status: ${String(error40)}`);
       await actionInstance.setFeedback({
-        title: "Nanoleaf",
+        title: await this.#dialName(programs),
         value: "Unavailable",
         indicator: 0,
         icon: this.#dialIcon("#e0a12e")
@@ -20927,7 +20927,19 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     return programs[0]?.mode === "hs" && /^#[0-9a-f]{6}$/i.test(programs[0].colorHex ?? "") ? programs[0].colorHex ?? "#65d96e" : "#65d96e";
   }
   #dialIcon(colour) {
-    return nanoleaf_bulb_default.replace("#ffffff", colour);
+    const svg = nanoleaf_bulb_default.replace("#ffffff", colour);
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  }
+  async #dialName(programs) {
+    const ids = new Set(programs.map((program) => program.deviceId));
+    const groups2 = await this.#manager.listGroups();
+    const group = groups2.find((candidate) => candidate.devices.length === ids.size && candidate.devices.every((deviceId) => ids.has(deviceId)));
+    if (group) return group.name;
+    const devices2 = await this.#manager.list();
+    if (programs.length === 1) {
+      return devices2.find((device) => device.eui64 === programs[0]?.deviceId)?.name ?? "Nanoleaf light";
+    }
+    return `${programs.length} Nanoleaf lights`;
   }
   #keyImage(status, colour) {
     const fill = status === "off" ? "#3d4541" : colour;
