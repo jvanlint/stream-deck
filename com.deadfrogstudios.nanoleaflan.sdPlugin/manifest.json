@@ -20,9 +20,9 @@
   "Actions": [
     {
       "UUID": "com.deadfrogstudios.nanoleaflan.apply-scene",
-      "Name": "Apply Light Scene",
+      "Name": "Set Color",
       "Tooltip": "Set each light in a device or group to its configured state.",
-      "Icon": "static/imgs/nanoleaf-bulb",
+      "Icon": "static/imgs/set-color",
       "Controllers": ["Keypad", "Encoder"],
       "Encoder": {
         "layout": "$B1",
@@ -39,7 +39,7 @@
       "UUID": "com.deadfrogstudios.nanoleaflan.color-cycle",
       "Name": "Color Cycle",
       "Tooltip": "Cycle a bulb or group through a custom list of colors.",
-      "Icon": "static/imgs/nanoleaf-bulb",
+      "Icon": "static/imgs/color-cycle",
       "Controllers": ["Keypad"],
       "PropertyInspectorPath": "ui/color-cycle.html",
       "States": [{ "Image": "static/imgs/nanoleaf-bulb", "TitleAlignment": "middle", "FontSize": 14 }]

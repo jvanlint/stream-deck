@@ -35,7 +35,7 @@ function renderTargets() {
     target.append(groupOptions);
   }
   target.value = settings.targetId ? `${settings.targetType}:${settings.targetId}` : "";
-  message.textContent = paired.length === 0 ? "Pair bulbs using the Apply Light Scene plugin setup first." : "";
+  message.textContent = paired.length === 0 ? "Pair bulbs using the Set Color plugin setup first." : "";
 }
 
 function renderColors() {
