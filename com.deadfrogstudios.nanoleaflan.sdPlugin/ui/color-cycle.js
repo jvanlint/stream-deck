@@ -48,6 +48,7 @@ function renderColors() {
     picker.addEventListener("input", () => {
       settings.colors[index] = picker.value;
       settings.nextColorIndex = 0;
+      delete settings.currentColor;
       saveSettings();
     });
     colorList.append(picker);
@@ -90,12 +91,14 @@ target.addEventListener("change", () => {
     settings.targetId = target.value.slice(separator + 1);
   }
   settings.nextColorIndex = 0;
+  delete settings.currentColor;
   saveSettings();
 });
 
 document.querySelector("#add-cycle-color").addEventListener("click", () => {
   settings.colors.push("#ffffff");
   settings.nextColorIndex = 0;
+  delete settings.currentColor;
   saveSettings();
   renderColors();
 });
@@ -104,6 +107,7 @@ document.querySelector("#remove-cycle-color").addEventListener("click", () => {
   if (settings.colors.length <= 1) return;
   settings.colors.pop();
   settings.nextColorIndex = 0;
+  delete settings.currentColor;
   saveSettings();
   renderColors();
 });

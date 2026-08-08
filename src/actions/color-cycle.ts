@@ -74,8 +74,8 @@ export class ColorCycleAction extends SingletonAction<Settings> {
       return;
     }
     const nextColorIndex = (index + 1) % colors.length;
-    await ev.action.setSettings({ ...settings, colors, nextColorIndex });
-    await this.#setImage(ev.action, colors[nextColorIndex] ?? DEFAULT_COLOR);
+    await ev.action.setSettings({ ...settings, colors, nextColorIndex, currentColor: color });
+    await this.#setImage(ev.action, color);
   }
 
   override async onPropertyInspectorDidAppear(_ev: PropertyInspectorDidAppearEvent<Settings>): Promise<void> {
@@ -102,10 +102,12 @@ export class ColorCycleAction extends SingletonAction<Settings> {
 
   async #refresh(actionInstance: WillAppearEvent<Settings>["action"], settings: Settings): Promise<void> {
     const colors = normalizedColors(settings.colors);
-    const index = Math.abs(Math.trunc(settings.nextColorIndex ?? 0)) % colors.length;
+    const currentColor = typeof settings.currentColor === "string" && HEX_COLOR.test(settings.currentColor)
+      ? settings.currentColor
+      : colors[0] ?? DEFAULT_COLOR;
     if (actionInstance.isKey()) {
       await actionInstance.setTitle(settings.targetId ? "Cycle" : "Configure");
-      await this.#setImage(actionInstance, settings.targetId ? colors[index] ?? DEFAULT_COLOR : "#3d4541");
+      await this.#setImage(actionInstance, settings.targetId ? currentColor : "#3d4541");
     }
   }
 

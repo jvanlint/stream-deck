@@ -53,4 +53,5 @@ export interface ColorCycleActionSettings {
   targetType?: "device" | "group";
   colors?: string[];
   nextColorIndex?: number;
+  currentColor?: string;
 }

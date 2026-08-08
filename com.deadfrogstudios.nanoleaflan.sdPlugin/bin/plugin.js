@@ -21026,8 +21026,8 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
       return;
     }
     const nextColorIndex = (index + 1) % colors.length;
-    await ev.action.setSettings({ ...settings2, colors, nextColorIndex });
-    await this.#setImage(ev.action, colors[nextColorIndex] ?? DEFAULT_COLOR);
+    await ev.action.setSettings({ ...settings2, colors, nextColorIndex, currentColor: color });
+    await this.#setImage(ev.action, color);
   }
   async onPropertyInspectorDidAppear(_ev) {
     await this.#sendTargets();
@@ -21049,10 +21049,10 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
   }
   async #refresh(actionInstance, settings2) {
     const colors = normalizedColors(settings2.colors);
-    const index = Math.abs(Math.trunc(settings2.nextColorIndex ?? 0)) % colors.length;
+    const currentColor = typeof settings2.currentColor === "string" && HEX_COLOR.test(settings2.currentColor) ? settings2.currentColor : colors[0] ?? DEFAULT_COLOR;
     if (actionInstance.isKey()) {
       await actionInstance.setTitle(settings2.targetId ? "Cycle" : "Configure");
-      await this.#setImage(actionInstance, settings2.targetId ? colors[index] ?? DEFAULT_COLOR : "#3d4541");
+      await this.#setImage(actionInstance, settings2.targetId ? currentColor : "#3d4541");
     }
   }
   async #setImage(actionInstance, color) {
