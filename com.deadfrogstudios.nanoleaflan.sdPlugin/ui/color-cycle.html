@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Color Cycle</title>
+  <link rel="stylesheet" href="property-inspector.css">
+</head>
+<body>
+  <main>
+    <h1>Color Cycle</h1>
+    <p class="scope-help">Each press applies the next color in the list to the selected bulb or group.</p>
+    <label for="cycle-target">This control operates</label>
+    <select id="cycle-target"><option value="">Select a paired bulb or group</option></select>
+    <section class="cycle-colors">
+      <h2>Colors</h2>
+      <div id="cycle-color-list" class="cycle-color-list"></div>
+      <div class="cycle-buttons">
+        <button id="add-cycle-color" type="button" aria-label="Add color">＋</button>
+        <button id="remove-cycle-color" type="button" aria-label="Remove last color">−</button>
+      </div>
+      <p class="help">The bulb icon shows the color that will be used on the next press.</p>
+    </section>
+    <p id="cycle-message" class="help" role="status"></p>
+  </main>
+  <script src="color-cycle.js"></script>
+</body>
+</html>

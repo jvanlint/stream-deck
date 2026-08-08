@@ -8142,12 +8142,12 @@ var NEVER = Object.freeze({
 // @__NO_SIDE_EFFECTS__
 function $constructor(name, initializer2, params) {
   function init(inst, def) {
-    var _a2;
+    var _a3;
     Object.defineProperty(inst, "_zod", {
       value: inst._zod ?? {},
       enumerable: false
     });
-    (_a2 = inst._zod).traits ?? (_a2.traits = /* @__PURE__ */ new Set());
+    (_a3 = inst._zod).traits ?? (_a3.traits = /* @__PURE__ */ new Set());
     inst._zod.traits.add(name);
     initializer2(inst, def);
     for (const k in _.prototype) {
@@ -8162,10 +8162,10 @@ function $constructor(name, initializer2, params) {
   }
   Object.defineProperty(Definition, "name", { value: name });
   function _(def) {
-    var _a2;
+    var _a3;
     const inst = params?.Parent ? new Definition() : this;
     init(inst, def);
-    (_a2 = inst._zod).deferred ?? (_a2.deferred = []);
+    (_a3 = inst._zod).deferred ?? (_a3.deferred = []);
     for (const fn of inst._zod.deferred) {
       fn();
     }
@@ -8656,8 +8656,8 @@ function aborted(x, startIndex = 0) {
 }
 function prefixIssues(path5, issues) {
   return issues.map((iss) => {
-    var _a2;
-    (_a2 = iss).path ?? (_a2.path = []);
+    var _a3;
+    (_a3 = iss).path ?? (_a3.path = []);
     iss.path.unshift(path5);
     return iss;
   });
@@ -8796,7 +8796,7 @@ function treeifyError(error40, _mapper) {
   };
   const result = { errors: [] };
   const processError = (error41, path5 = []) => {
-    var _a2, _b;
+    var _a3, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
         issue2.errors.map((issues) => processError({ issues }, issue2.path));
@@ -8817,7 +8817,7 @@ function treeifyError(error40, _mapper) {
           const terminal = i === fullpath.length - 1;
           if (typeof el === "string") {
             curr.properties ?? (curr.properties = {});
-            (_a2 = curr.properties)[el] ?? (_a2[el] = { errors: [] });
+            (_a3 = curr.properties)[el] ?? (_a3[el] = { errors: [] });
             curr = curr.properties[el];
           } else {
             curr.items ?? (curr.items = []);
@@ -9030,10 +9030,10 @@ var uppercase = /^[^a-z]*$/;
 
 // node_modules/zod/v4/core/checks.js
 var $ZodCheck = /* @__PURE__ */ $constructor("$ZodCheck", (inst, def) => {
-  var _a2;
+  var _a3;
   inst._zod ?? (inst._zod = {});
   inst._zod.def = def;
-  (_a2 = inst._zod).onattach ?? (_a2.onattach = []);
+  (_a3 = inst._zod).onattach ?? (_a3.onattach = []);
 });
 var numericOriginMap = {
   number: "number",
@@ -9099,8 +9099,8 @@ var $ZodCheckGreaterThan = /* @__PURE__ */ $constructor("$ZodCheckGreaterThan", 
 var $ZodCheckMultipleOf = /* @__PURE__ */ $constructor("$ZodCheckMultipleOf", (inst, def) => {
   $ZodCheck.init(inst, def);
   inst._zod.onattach.push((inst2) => {
-    var _a2;
-    (_a2 = inst2._zod.bag).multipleOf ?? (_a2.multipleOf = def.value);
+    var _a3;
+    (_a3 = inst2._zod.bag).multipleOf ?? (_a3.multipleOf = def.value);
   });
   inst._zod.check = (payload) => {
     if (typeof payload.value !== typeof def.value)
@@ -9226,9 +9226,9 @@ var $ZodCheckBigIntFormat = /* @__PURE__ */ $constructor("$ZodCheckBigIntFormat"
   };
 });
 var $ZodCheckMaxSize = /* @__PURE__ */ $constructor("$ZodCheckMaxSize", (inst, def) => {
-  var _a2;
+  var _a3;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a3 = inst._zod.def).when ?? (_a3.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.size !== void 0;
   });
@@ -9253,9 +9253,9 @@ var $ZodCheckMaxSize = /* @__PURE__ */ $constructor("$ZodCheckMaxSize", (inst, d
   };
 });
 var $ZodCheckMinSize = /* @__PURE__ */ $constructor("$ZodCheckMinSize", (inst, def) => {
-  var _a2;
+  var _a3;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a3 = inst._zod.def).when ?? (_a3.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.size !== void 0;
   });
@@ -9280,9 +9280,9 @@ var $ZodCheckMinSize = /* @__PURE__ */ $constructor("$ZodCheckMinSize", (inst, d
   };
 });
 var $ZodCheckSizeEquals = /* @__PURE__ */ $constructor("$ZodCheckSizeEquals", (inst, def) => {
-  var _a2;
+  var _a3;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a3 = inst._zod.def).when ?? (_a3.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.size !== void 0;
   });
@@ -9310,9 +9310,9 @@ var $ZodCheckSizeEquals = /* @__PURE__ */ $constructor("$ZodCheckSizeEquals", (i
   };
 });
 var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (inst, def) => {
-  var _a2;
+  var _a3;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a3 = inst._zod.def).when ?? (_a3.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== void 0;
   });
@@ -9339,9 +9339,9 @@ var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (ins
   };
 });
 var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (inst, def) => {
-  var _a2;
+  var _a3;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a3 = inst._zod.def).when ?? (_a3.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== void 0;
   });
@@ -9368,9 +9368,9 @@ var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (ins
   };
 });
 var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals", (inst, def) => {
-  var _a2;
+  var _a3;
   $ZodCheck.init(inst, def);
-  (_a2 = inst._zod.def).when ?? (_a2.when = (payload) => {
+  (_a3 = inst._zod.def).when ?? (_a3.when = (payload) => {
     const val = payload.value;
     return !nullish(val) && val.length !== void 0;
   });
@@ -9399,7 +9399,7 @@ var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals"
   };
 });
 var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat", (inst, def) => {
-  var _a2, _b;
+  var _a3, _b;
   $ZodCheck.init(inst, def);
   inst._zod.onattach.push((inst2) => {
     const bag = inst2._zod.bag;
@@ -9410,7 +9410,7 @@ var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat"
     }
   });
   if (def.pattern)
-    (_a2 = inst._zod).check ?? (_a2.check = (payload) => {
+    (_a3 = inst._zod).check ?? (_a3.check = (payload) => {
       def.pattern.lastIndex = 0;
       if (def.pattern.test(payload.value))
         return;
@@ -9611,7 +9611,7 @@ var version = {
 
 // node_modules/zod/v4/core/schemas.js
 var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
-  var _a2;
+  var _a3;
   inst ?? (inst = {});
   inst._zod.def = def;
   inst._zod.bag = inst._zod.bag || {};
@@ -9626,7 +9626,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
     }
   }
   if (checks.length === 0) {
-    (_a2 = inst._zod).deferred ?? (_a2.deferred = []);
+    (_a3 = inst._zod).deferred ?? (_a3.deferred = []);
     inst._zod.deferred?.push(() => {
       inst._zod.run = inst._zod.parse;
     });
@@ -16992,7 +16992,7 @@ var JSONSchemaGenerator = class {
     this.seen = /* @__PURE__ */ new Map();
   }
   process(schema, _params = { path: [], schemaPath: [] }) {
-    var _a2;
+    var _a3;
     const def = schema._zod.def;
     const formatMap = {
       guid: "uuid",
@@ -17454,7 +17454,7 @@ var JSONSchemaGenerator = class {
       delete result.schema.default;
     }
     if (this.io === "input" && result.schema._prefault)
-      (_a2 = result.schema).default ?? (_a2.default = result.schema._prefault);
+      (_a3 = result.schema).default ?? (_a3.default = result.schema._prefault);
     delete result.schema._prefault;
     const _result = this.seen.get(schema);
     return _result.schema;
@@ -20966,6 +20966,104 @@ _init = __decoratorStart(_a);
 ApplySceneAction = __decorateElement(_init, 0, "ApplySceneAction", _ApplySceneAction_decorators, ApplySceneAction);
 __runInitializers(_init, 1, ApplySceneAction);
 
+// src/actions/color-cycle.ts
+var DEFAULT_COLOR = "#00ff00";
+var DEFAULT_COLORS = [DEFAULT_COLOR, "#ff0000", "#0000ff"];
+var HEX_COLOR = /^#[0-9a-f]{6}$/i;
+function normalizedColors(colors) {
+  if (!Array.isArray(colors)) return DEFAULT_COLORS;
+  const valid = colors.filter((color) => typeof color === "string" && HEX_COLOR.test(color));
+  return valid.length > 0 ? valid : DEFAULT_COLORS;
+}
+function hexToHueSaturation(hex) {
+  const [red, green, blue] = [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255);
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  let hue = 0;
+  if (delta > 0) {
+    if (max === red) hue = 60 * ((green - blue) / delta % 6);
+    else if (max === green) hue = 60 * ((blue - red) / delta + 2);
+    else hue = 60 * ((red - green) / delta + 4);
+  }
+  if (hue < 0) hue += 360;
+  return { hue: Math.round(hue), sat: Math.round(max === 0 ? 0 : delta / max * 100) };
+}
+var _ColorCycleAction_decorators, _init2, _a2;
+_ColorCycleAction_decorators = [action({ UUID: "com.deadfrogstudios.nanoleaflan.color-cycle" })];
+var ColorCycleAction = class extends (_a2 = SingletonAction) {
+  constructor(manager2, clients2) {
+    super();
+    this.manager = manager2;
+    this.clients = clients2;
+  }
+  async onWillAppear(ev) {
+    await this.#refresh(ev.action, ev.payload.settings);
+  }
+  async onDidReceiveSettings(ev) {
+    await this.#refresh(ev.action, ev.payload.settings);
+  }
+  async onKeyDown(ev) {
+    const settings2 = ev.payload.settings;
+    const deviceIds = await this.#deviceIds(settings2);
+    if (deviceIds.length === 0) {
+      await ev.action.showAlert();
+      return;
+    }
+    const colors = normalizedColors(settings2.colors);
+    const index = Math.abs(Math.trunc(settings2.nextColorIndex ?? 0)) % colors.length;
+    const color = colors[index] ?? DEFAULT_COLOR;
+    const { hue, sat } = hexToHueSaturation(color);
+    const results = await Promise.allSettled(deviceIds.map(async (deviceId) => {
+      const client = await this.clients.forDevice(deviceId);
+      await client.updateState({ on: { value: true }, hue: { value: hue }, sat: { value: sat } });
+    }));
+    if (results.some((result) => result.status === "rejected")) {
+      results.forEach((result) => {
+        if (result.status === "rejected") plugin_default.logger.error(`Color cycle failed: ${String(result.reason)}`);
+      });
+      await ev.action.showAlert();
+      return;
+    }
+    const nextColorIndex = (index + 1) % colors.length;
+    await ev.action.setSettings({ ...settings2, colors, nextColorIndex });
+    await this.#setImage(ev.action, colors[nextColorIndex] ?? DEFAULT_COLOR);
+  }
+  async onPropertyInspectorDidAppear(_ev) {
+    await this.#sendTargets();
+  }
+  async onSendToPlugin(ev) {
+    if (!ev.payload || typeof ev.payload !== "object" || Array.isArray(ev.payload)) return;
+    if (ev.payload.command === "refresh") await this.#sendTargets();
+  }
+  async #sendTargets() {
+    const devices2 = await this.manager.list();
+    const groups2 = await this.manager.listGroups();
+    await plugin_default.ui.sendToPropertyInspector({ event: "targets", devices: devices2, groups: groups2 });
+  }
+  async #deviceIds(settings2) {
+    if (!settings2.targetId) return [];
+    if (settings2.targetType === "device") return [settings2.targetId];
+    if (settings2.targetType === "group") return (await this.manager.listGroups()).find((group) => group.id === settings2.targetId)?.devices ?? [];
+    return [];
+  }
+  async #refresh(actionInstance, settings2) {
+    const colors = normalizedColors(settings2.colors);
+    const index = Math.abs(Math.trunc(settings2.nextColorIndex ?? 0)) % colors.length;
+    if (actionInstance.isKey()) {
+      await actionInstance.setTitle(settings2.targetId ? "Cycle" : "Configure");
+      await this.#setImage(actionInstance, settings2.targetId ? colors[index] ?? DEFAULT_COLOR : "#3d4541");
+    }
+  }
+  async #setImage(actionInstance, color) {
+    const svg = nanoleaf_bulb_default.replace("#ffffff", color);
+    await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
+  }
+};
+_init2 = __decoratorStart(_a2);
+ColorCycleAction = __decorateElement(_init2, 0, "ColorCycleAction", _ColorCycleAction_decorators, ColorCycleAction);
+__runInitializers(_init2, 1, ColorCycleAction);
+
 // src/nanoleaf/client.ts
 var NanoleafApiError = class extends Error {
   constructor(message, status) {
@@ -21554,6 +21652,7 @@ var pairing = new NanoleafPairingService(devices, tokens, {
 var manager = new NanoleafDeviceManager(discovery, devices, tokens, pairing, groups);
 var clients = new LocalNanoleafClientFactory(devices, tokens, discovery);
 plugin_default.actions.registerAction(new ApplySceneAction(manager, clients));
+plugin_default.actions.registerAction(new ColorCycleAction(manager, clients));
 plugin_default.connect();
 void manager.start().catch((error40) => plugin_default.logger.error(`Nanoleaf discovery stopped: ${String(error40)}`));
 /*! Bundled license information:

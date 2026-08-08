@@ -1,5 +1,6 @@
 import streamDeck from "@elgato/streamdeck";
 import { ApplySceneAction } from "./actions/apply-scene.js";
+import { ColorCycleAction } from "./actions/color-cycle.js";
 import { LocalNanoleafClientFactory } from "./nanoleaf/client.js";
 import { MdnsDiscoveryService } from "./nanoleaf/discovery.js";
 import { NanoleafDeviceManager } from "./nanoleaf/device-manager.js";
@@ -19,5 +20,6 @@ const manager = new NanoleafDeviceManager(discovery, devices, tokens, pairing, g
 const clients = new LocalNanoleafClientFactory(devices, tokens, discovery);
 
 streamDeck.actions.registerAction(new ApplySceneAction(manager, clients));
+streamDeck.actions.registerAction(new ColorCycleAction(manager, clients));
 streamDeck.connect();
 void manager.start().catch((error) => streamDeck.logger.error(`Nanoleaf discovery stopped: ${String(error)}`));

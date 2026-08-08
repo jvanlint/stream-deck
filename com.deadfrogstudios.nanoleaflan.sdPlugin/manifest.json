@@ -34,6 +34,15 @@
         }
       },
       "States": [{ "Image": "static/imgs/nanoleaf-bulb", "TitleAlignment": "middle", "FontSize": 14 }]
+    },
+    {
+      "UUID": "com.deadfrogstudios.nanoleaflan.color-cycle",
+      "Name": "Color Cycle",
+      "Tooltip": "Cycle a bulb or group through a custom list of colors.",
+      "Icon": "static/imgs/nanoleaf-bulb",
+      "Controllers": ["Keypad"],
+      "PropertyInspectorPath": "ui/color-cycle.html",
+      "States": [{ "Image": "static/imgs/nanoleaf-bulb", "TitleAlignment": "middle", "FontSize": 14 }]
     }
   ]
 }

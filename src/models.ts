@@ -47,3 +47,10 @@ export interface SceneActionSettings {
   targetType?: "device" | "group";
   lights?: LightProgram[];
 }
+
+export interface ColorCycleActionSettings {
+  targetId?: string;
+  targetType?: "device" | "group";
+  colors?: string[];
+  nextColorIndex?: number;
+}

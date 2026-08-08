@@ -57,3 +57,10 @@ button.swatch:hover { transform: scale(1.1); border-color: #fff; }
 .member { display: flex; align-items: center; gap: 7px; margin: 8px 0 0; }
 .member input { width: auto; }
 button.danger { color: #ffb0b0; border-color: #875050; }
+.cycle-colors { margin-top: 18px; }
+.cycle-color-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cycle-color-list input[type="color"] { width: 42px; height: 42px; padding: 0; border: 2px solid #aaa; border-radius: 50%; overflow: hidden; cursor: pointer; }
+.cycle-color-list input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.cycle-color-list input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.cycle-buttons { display: flex; gap: 10px; margin-top: 10px; }
+.cycle-buttons button { width: 54px; padding: 3px 10px; font-size: 22px; line-height: 1; }
