@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toUpdatePayload } from "../src/nanoleaf/state.js";
+import { colourTemperatureToHex, toUpdatePayload } from "../src/nanoleaf/state.js";
 
 describe("toUpdatePayload", () => {
   it("creates an HS update and clamps API ranges", () => {
@@ -16,5 +16,15 @@ describe("toUpdatePayload", () => {
   it("sends only power-off so colour fields cannot reactivate the bulb", () => {
     expect(toUpdatePayload({ deviceId: "bulb-3", power: false, brightness: 80, mode: "hs", hue: 240, sat: 100 }))
       .toEqual({ on: { value: false } });
+  });
+});
+
+describe("colourTemperatureToHex", () => {
+  it("renders 4000 K as warm white rather than the plugin accent green", () => {
+    expect(colourTemperatureToHex(4000)).toBe("#ffcea6");
+  });
+
+  it("renders cooler temperatures with a bluer tint", () => {
+    expect(colourTemperatureToHex(6500)).toBe("#fffefa");
   });
 });

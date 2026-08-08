@@ -20580,6 +20580,13 @@ var streamDeck = {
 var plugin_default = streamDeck;
 
 // src/nanoleaf/state.ts
+function colourTemperatureToHex(kelvin) {
+  const temperature = clamp(kelvin, 1e3, 4e4) / 100;
+  const red = temperature <= 66 ? 255 : 329.698727446 * (temperature - 60) ** -0.1332047592;
+  const green = temperature <= 66 ? 99.4708025861 * Math.log(temperature) - 161.1195681661 : 288.1221695283 * (temperature - 60) ** -0.0755148492;
+  const blue = temperature >= 66 ? 255 : temperature <= 19 ? 0 : 138.5177312231 * Math.log(temperature - 10) - 305.0447927307;
+  return `#${[red, green, blue].map((channel) => Math.round(clamp(channel, 0, 255)).toString(16).padStart(2, "0")).join("")}`;
+}
 function toUpdatePayload(program) {
   const update = { on: { value: program.power } };
   if (!program.power) return update;
@@ -20725,7 +20732,6 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
       plugin_default.logger.info(`Scene applied to ${result.succeeded.length} light(s)`);
       if (actionInstance.isKey()) await actionInstance.setImage(this.#keyImage(result.mode, this.#configuredColour(programs)));
       if (actionInstance.isDial()) await this.#refreshDial(actionInstance, programs);
-      if (actionInstance.isKey()) await actionInstance.showOk();
     } else {
       for (const failure of result.failed) plugin_default.logger.error(`Scene update failed for ${failure.deviceId}: ${String(failure.error)}`);
       await actionInstance.showAlert();
@@ -20924,7 +20930,12 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     }
   }
   #configuredColour(programs) {
-    return programs[0]?.mode === "hs" && /^#[0-9a-f]{6}$/i.test(programs[0].colorHex ?? "") ? programs[0].colorHex ?? "#65d96e" : "#65d96e";
+    const program = programs[0];
+    if (program?.mode === "hs" && /^#[0-9a-f]{6}$/i.test(program.colorHex ?? "")) {
+      return program.colorHex ?? "#65d96e";
+    }
+    if (program?.mode === "ct") return colourTemperatureToHex(program.ct);
+    return "#65d96e";
   }
   #dialIcon(colour) {
     const svg = nanoleaf_bulb_default.replace("#ffffff", colour);

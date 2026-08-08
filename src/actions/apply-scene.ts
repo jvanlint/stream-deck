@@ -17,6 +17,7 @@ import type { SceneActionSettings } from "../models.js";
 import type { NanoleafClientFactory } from "../nanoleaf/client.js";
 import type { NanoleafDeviceManager } from "../nanoleaf/device-manager.js";
 import { toggleScene } from "../nanoleaf/scene.js";
+import { colourTemperatureToHex } from "../nanoleaf/state.js";
 import nanoleafBulbSvg from "../../com.deadfrogstudios.nanoleaflan.sdPlugin/static/imgs/nanoleaf-bulb.svg";
 
 type Settings = SceneActionSettings & JsonObject & { manualHostRequest?: string };
@@ -119,7 +120,6 @@ export class ApplySceneAction extends SingletonAction<Settings> {
       streamDeck.logger.info(`Scene applied to ${result.succeeded.length} light(s)`);
       if (actionInstance.isKey()) await actionInstance.setImage(this.#keyImage(result.mode, this.#configuredColour(programs)));
       if (actionInstance.isDial()) await this.#refreshDial(actionInstance, programs);
-      if (actionInstance.isKey()) await actionInstance.showOk();
     } else {
       for (const failure of result.failed) streamDeck.logger.error(`Scene update failed for ${failure.deviceId}: ${String(failure.error)}`);
       await actionInstance.showAlert();
@@ -332,9 +332,12 @@ export class ApplySceneAction extends SingletonAction<Settings> {
   }
 
   #configuredColour(programs: NonNullable<Settings["lights"]>): string {
-    return programs[0]?.mode === "hs" && /^#[0-9a-f]{6}$/i.test(programs[0].colorHex ?? "")
-      ? programs[0].colorHex ?? "#65d96e"
-      : "#65d96e";
+    const program = programs[0];
+    if (program?.mode === "hs" && /^#[0-9a-f]{6}$/i.test(program.colorHex ?? "")) {
+      return program.colorHex ?? "#65d96e";
+    }
+    if (program?.mode === "ct") return colourTemperatureToHex(program.ct);
+    return "#65d96e";
   }
 
   #dialIcon(colour: string): string {
