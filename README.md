@@ -1,12 +1,12 @@
 # Nanoleaf LAN
 
-[![Stream Deck 6.6+](https://img.shields.io/badge/Stream%20Deck-6.6%2B-0097D7)](https://www.elgato.com/s/downloads)
+[![Stream Deck 6.9+](https://img.shields.io/badge/Stream%20Deck-6.9%2B-0097D7)](https://www.elgato.com/s/downloads)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 Control Nanoleaf Matter Wi-Fi Essentials bulbs directly from an Elgato Stream Deck—locally, quickly, and without Home Assistant, Homebridge, cloud services, or a Matter SDK.
 
-The plugin discovers bulbs over mDNS, pairs with Nanoleaf's local HTTP API, and lets each Stream Deck control run its own multi-light scene. A control can mix colours, colour temperatures, and brightness levels across individual bulbs, then apply those changes concurrently.
+The plugin discovers bulbs over mDNS and pairs with Nanoleaf's local HTTP API. **Set Color** applies a configured colour, colour temperature, and brightness to a bulb or group. **Color Cycle** advances through a user-defined colour list, with green, red, and blue supplied by default.
 
 Developed by [Dead Frog Studios](https://deadfrogstudios.com).
 
@@ -21,15 +21,19 @@ Developed by [Dead Frog Studios](https://deadfrogstudios.com).
 - One-time pairing through the Nanoleaf app
 - Secure token storage with Windows DPAPI or macOS Keychain
 - User-defined bulb groups and friendly device names
-- Per-light power, brightness, colour, and colour-temperature settings
+- **Set Color** action for power, brightness, colour, and colour-temperature scenes
+- **Color Cycle** action with an editable colour list and green, red, and blue defaults
 - Concurrent scene updates for responsive multi-light control
 - Live key status with on, off, unconfigured, and unavailable states
-- Stream Deck+ support: press or tap to toggle, rotate to adjust brightness
+- Key indicators that show configured colours even when a bulb is off
+- Stream Deck+ support for both actions
+- Custom Color Cycle LCD layout with current-colour bulb, cycle swatches, and brightness bar
+- Dial press or touchscreen tap to activate; dial rotation adjusts brightness in 5% steps
 - Stable device identity based on EUI-64 rather than changing IP addresses
 
 ## Requirements
 
-- Elgato Stream Deck 6.6 or newer
+- Elgato Stream Deck 6.9 or newer
 - Windows 10 or newer, or macOS 12 or newer
 - A Nanoleaf Matter Wi-Fi Essentials bulb on the same local network as the computer
 - Node.js 20 or newer when building from source
@@ -54,7 +58,7 @@ npm run validate
 npm run pack
 ```
 
-The package command creates a `.streamDeckPlugin` file in the repository root. Open that file to install it in Stream Deck.
+The package command creates `com.deadfrogstudios.nanoleaflan.streamDeckPlugin` in the repository root. This is the file to install locally or upload to the Stream Deck Marketplace. The marketplace's `*.streamdeckplugin` file filter is case-insensitive.
 
 For development, link the plugin directory instead:
 
@@ -64,23 +68,41 @@ npx streamdeck link com.deadfrogstudios.nanoleaflan.sdPlugin
 
 Restart Stream Deck after linking if the plugin does not appear immediately.
 
+If you test by manually copying files, copy the complete `com.deadfrogstudios.nanoleaflan.sdPlugin` directory after every build, replacing the existing plugin directory, and restart Stream Deck. The `.streamDeckPlugin` package is not required for this local folder-copy workflow.
+
 ## Set up a control
 
-1. Drag **Apply Light Scene** from the **Nanoleaf LAN** category onto a key or Stream Deck+ dial.
+1. Drag **Set Color** from the **Nanoleaf LAN** category onto a key or Stream Deck+ dial.
 2. Open the action's Property Inspector and expand **Plugin setup**.
 3. Wait for your bulb to appear. If discovery fails, add its IP address manually.
 4. In the Nanoleaf app, open the bulb's settings and tap **Connect to API**.
 5. Click **Pair bulb with open window** in the Property Inspector.
 6. Optionally rename bulbs or create a group.
-7. Select a paired bulb or group for the control and configure each light's state.
+7. Select a paired bulb or group and configure its colour and brightness.
 
 Pairing and groups are shared by every Nanoleaf control. Scene settings belong to the individual key or dial, so the same group can have several different looks.
 
-### Control behaviour
+### Set Color behaviour
 
 - **Key press, dial press, or touchscreen tap:** if every target bulb already matches the configured scene, turn the targets off; otherwise apply the scene immediately.
 - **Dial rotation:** adjust configured brightness in 5% increments and switch the target bulbs on.
 - **Key image:** shows the current on/off state, configured colour, or a warning when a bulb cannot be reached.
+
+## Set up Color Cycle
+
+1. Drag **Color Cycle** onto a key or Stream Deck+ dial.
+2. Select a paired bulb or group in the Property Inspector.
+3. Edit the colour circles. Use **+** to append a colour and **−** to remove the last colour.
+4. Press the key or dial to apply the next colour.
+
+Color Cycle starts with green, red, and blue. Its key shows the currently applied colour plus up to three overlapping cycle swatches. On Stream Deck+, the LCD places those swatches in the tile's upper-right corner and shows the current brightness as a percentage and progress bar.
+
+### Color Cycle behaviour
+
+- **Key press, dial press, or touchscreen tap:** apply the next configured colour and advance the saved cycle position.
+- **Dial rotation:** adjust brightness in 5% increments without changing the current colour.
+- **Key and LCD bulb:** show the colour most recently applied by Color Cycle.
+- **Cycle swatches:** show up to the first three configured colours.
 
 ## Development
 
@@ -101,6 +123,7 @@ The build type-checks the source and bundles the runtime to `com.deadfrogstudios
 ```text
 com.deadfrogstudios.nanoleaflan.sdPlugin/
   manifest.json             Stream Deck plugin manifest
+  layouts/                  Custom Stream Deck+ LCD layouts
   static/                   Plugin and action artwork
   ui/                       Property Inspector
 src/
@@ -148,7 +171,7 @@ Issues and pull requests are welcome. For code changes:
 4. Manually verify hardware-facing changes on a compatible Nanoleaf bulb when possible.
 5. Open a pull request describing the user-facing change, test environment, and how it was verified.
 
-Please do not commit generated packages, logs, `node_modules`, or local credentials.
+Please do not commit logs, `node_modules`, or local credentials. Generated `.streamDeckPlugin` packages should only be committed when the release process explicitly requires them.
 
 ## Acknowledgements
 
