@@ -54,4 +54,5 @@ export interface ColorCycleActionSettings {
   colors?: string[];
   nextColorIndex?: number;
   currentColor?: string;
+  brightness?: number;
 }

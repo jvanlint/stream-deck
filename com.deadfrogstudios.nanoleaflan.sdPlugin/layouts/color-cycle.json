@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "com.deadfrogstudios.nanoleaflan.color-cycle",
+  "items": [
+    {
+      "key": "title",
+      "type": "text",
+      "rect": [4, 4, 140, 24],
+      "alignment": "left",
+      "font": { "size": 15, "weight": 600 }
+    },
+    {
+      "key": "swatches",
+      "type": "pixmap",
+      "rect": [148, 3, 48, 28]
+    },
+    {
+      "key": "icon",
+      "type": "pixmap",
+      "rect": [8, 31, 52, 62]
+    },
+    {
+      "key": "value",
+      "type": "text",
+      "rect": [68, 34, 120, 27],
+      "alignment": "right",
+      "font": { "size": 18, "weight": 600 }
+    },
+    {
+      "key": "indicator",
+      "type": "bar",
+      "rect": [68, 68, 120, 16],
+      "bar_bg_c": "#313131",
+      "bar_fill_c": "#ffffff",
+      "bar_border_c": "#a0a0a0",
+      "range": { "min": 0, "max": 100 },
+      "value": 0
+    }
+  ]
+}

@@ -20990,6 +20990,20 @@ function hexToHueSaturation(hex) {
   if (hue < 0) hue += 360;
   return { hue: Math.round(hue), sat: Math.round(max === 0 ? 0 : delta / max * 100) };
 }
+function hueSaturationToHex(hue, saturation) {
+  const normalizedHue = (hue % 360 + 360) % 360;
+  const s = Math.max(0, Math.min(100, saturation)) / 100;
+  const c = s;
+  const x = c * (1 - Math.abs(normalizedHue / 60 % 2 - 1));
+  const m = 1 - c;
+  let rgb = [c, x, 0];
+  if (normalizedHue >= 60 && normalizedHue < 120) rgb = [x, c, 0];
+  else if (normalizedHue < 180) rgb = [0, c, x];
+  else if (normalizedHue < 240) rgb = [0, x, c];
+  else if (normalizedHue < 300) rgb = [x, 0, c];
+  else if (normalizedHue >= 300) rgb = [c, 0, x];
+  return `#${rgb.map((channel) => Math.round((channel + m) * 255).toString(16).padStart(2, "0")).join("")}`;
+}
 var _ColorCycleAction_decorators, _init2, _a2;
 _ColorCycleAction_decorators = [action({ UUID: "com.deadfrogstudios.nanoleaflan.color-cycle" })];
 var ColorCycleAction = class extends (_a2 = SingletonAction) {
@@ -20998,17 +21012,53 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     this.manager = manager2;
     this.clients = clients2;
   }
+  #statusTimers = /* @__PURE__ */ new Map();
+  #stateCache = /* @__PURE__ */ new Map();
+  #dialPending = /* @__PURE__ */ new Map();
   async onWillAppear(ev) {
     await this.#refresh(ev.action, ev.payload.settings);
+    const existing = this.#statusTimers.get(ev.action.id);
+    if (existing) clearInterval(existing);
+    this.#statusTimers.set(ev.action.id, setInterval(() => {
+      void ev.action.getSettings().then((settings2) => this.#refresh(ev.action, settings2));
+    }, 5e3));
   }
   async onDidReceiveSettings(ev) {
     await this.#refresh(ev.action, ev.payload.settings);
   }
   async onKeyDown(ev) {
-    const settings2 = ev.payload.settings;
+    await this.#cycle(ev.action, ev.payload.settings);
+  }
+  async onDialDown(ev) {
+    await this.#cycle(ev.action, ev.payload.settings);
+  }
+  async onTouchTap(ev) {
+    await this.#cycle(ev.action, ev.payload.settings);
+  }
+  onDialRotate(ev) {
+    const existing = this.#dialPending.get(ev.action.id);
+    if (existing) clearTimeout(existing.timer);
+    this.#dialPending.set(ev.action.id, {
+      ticks: (existing?.ticks ?? 0) + ev.payload.ticks,
+      action: ev.action,
+      settings: ev.payload.settings,
+      timer: setTimeout(() => {
+        void this.#applyBrightness(ev.action.id);
+      }, 120)
+    });
+  }
+  onWillDisappear(ev) {
+    const statusTimer = this.#statusTimers.get(ev.action.id);
+    if (statusTimer) clearInterval(statusTimer);
+    this.#statusTimers.delete(ev.action.id);
+    const pending = this.#dialPending.get(ev.action.id);
+    if (pending) clearTimeout(pending.timer);
+    this.#dialPending.delete(ev.action.id);
+  }
+  async #cycle(actionInstance, settings2) {
     const deviceIds = await this.#deviceIds(settings2);
     if (deviceIds.length === 0) {
-      await ev.action.showAlert();
+      await actionInstance.showAlert();
       return;
     }
     const colors = normalizedColors(settings2.colors);
@@ -21017,18 +21067,56 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     const { hue, sat } = hexToHueSaturation(color);
     const results = await Promise.allSettled(deviceIds.map(async (deviceId) => {
       const client = await this.clients.forDevice(deviceId);
-      await client.updateState({ on: { value: true }, hue: { value: hue }, sat: { value: sat } });
+      await client.updateState({
+        on: { value: true },
+        brightness: { value: Math.max(1, Math.min(100, settings2.brightness ?? 100)) },
+        hue: { value: hue },
+        sat: { value: sat }
+      });
     }));
     if (results.some((result) => result.status === "rejected")) {
       results.forEach((result) => {
         if (result.status === "rejected") plugin_default.logger.error(`Color cycle failed: ${String(result.reason)}`);
       });
-      await ev.action.showAlert();
+      await actionInstance.showAlert();
       return;
     }
+    const brightness = Math.max(1, Math.min(100, settings2.brightness ?? 100));
+    for (const deviceId of deviceIds) this.#stateCache.set(deviceId, { color, brightness, updatedAt: Date.now() });
     const nextColorIndex = (index + 1) % colors.length;
-    await ev.action.setSettings({ ...settings2, colors, nextColorIndex, currentColor: color });
-    await this.#setImage(ev.action, color, colors);
+    const updatedSettings = { ...settings2, colors, nextColorIndex, currentColor: color };
+    await actionInstance.setSettings(updatedSettings);
+    await this.#refresh(actionInstance, updatedSettings);
+  }
+  async #applyBrightness(actionId) {
+    const pending = this.#dialPending.get(actionId);
+    if (!pending) return;
+    this.#dialPending.delete(actionId);
+    const deviceIds = await this.#deviceIds(pending.settings);
+    if (deviceIds.length === 0) {
+      await pending.action.showAlert();
+      return;
+    }
+    const brightness = Math.max(1, Math.min(100, (pending.settings.brightness ?? 100) + pending.ticks * 5));
+    const results = await Promise.allSettled(deviceIds.map(async (deviceId) => {
+      const client = await this.clients.forDevice(deviceId);
+      await client.updateState({ on: { value: true }, brightness: { value: brightness } });
+    }));
+    if (results.some((result) => result.status === "rejected")) {
+      await pending.action.showAlert();
+      return;
+    }
+    for (const deviceId of deviceIds) {
+      const cached2 = this.#stateCache.get(deviceId);
+      this.#stateCache.set(deviceId, {
+        color: cached2?.color ?? pending.settings.currentColor ?? DEFAULT_COLOR,
+        brightness,
+        updatedAt: Date.now()
+      });
+    }
+    const updatedSettings = { ...pending.settings, brightness };
+    await pending.action.setSettings(updatedSettings);
+    await this.#refresh(pending.action, updatedSettings);
   }
   async onPropertyInspectorDidAppear(_ev) {
     await this.#sendTargets();
@@ -21050,18 +21138,60 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
   }
   async #refresh(actionInstance, settings2) {
     const colors = normalizedColors(settings2.colors);
-    const currentColor = typeof settings2.currentColor === "string" && HEX_COLOR.test(settings2.currentColor) ? settings2.currentColor : colors[0] ?? DEFAULT_COLOR;
+    let currentColor = typeof settings2.currentColor === "string" && HEX_COLOR.test(settings2.currentColor) ? settings2.currentColor : colors[0] ?? DEFAULT_COLOR;
+    let brightness = Math.max(1, Math.min(100, settings2.brightness ?? 100));
+    if (settings2.targetId) {
+      try {
+        const deviceId = (await this.#deviceIds(settings2))[0];
+        if (deviceId) {
+          const cached2 = this.#stateCache.get(deviceId);
+          if (cached2) {
+            currentColor = cached2.color;
+            brightness = cached2.brightness;
+          } else {
+            const state = await (await this.clients.forDevice(deviceId)).getState();
+            if (state.on.value) currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
+            brightness = Math.max(1, Math.min(100, Math.round(state.brightness.value)));
+            this.#stateCache.set(deviceId, { color: currentColor, brightness, updatedAt: Date.now() });
+          }
+        }
+      } catch (error40) {
+        plugin_default.logger.warn(`Unable to refresh Color Cycle state: ${String(error40)}`);
+      }
+    }
     if (actionInstance.isKey()) {
       await actionInstance.setTitle(settings2.targetId ? "" : "Configure");
       await this.#setImage(actionInstance, settings2.targetId ? currentColor : "#3d4541", settings2.targetId ? colors : []);
+    } else if (actionInstance.isDial()) {
+      await actionInstance.setFeedback({
+        title: "Color Cycle",
+        value: settings2.targetId ? `${brightness}%` : "Configure",
+        indicator: settings2.targetId ? brightness : 0,
+        icon: this.#dialIcon(settings2.targetId ? currentColor : "#3d4541"),
+        swatches: this.#dialSwatches(settings2.targetId ? colors : [])
+      });
     }
   }
-  async #setImage(actionInstance, color, colors) {
-    const swatches = colors.slice(0, 3).map(
-      (swatch, index) => `<circle cx="${94 + index * 14}" cy="22" r="11" fill="${swatch}" stroke="#fff" stroke-width="3"/>`
+  #dialIcon(color) {
+    const svg = nanoleaf_bulb_default.replace("#ffffff", color);
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  }
+  #dialSwatches(colors) {
+    const circles = colors.slice(0, 3).map(
+      (color, index) => `<circle cx="${13 + index * 12}" cy="15" r="9" fill="${color}" stroke="#fff" stroke-width="2"/>`
     ).join("");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 30">${circles}</svg>`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  }
+  async #setImage(actionInstance, color, colors) {
+    const swatches = this.#colorSwatches(colors);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><path d="${NANOLEAF_BULB_PATH2}" transform="translate(18 9) scale(4.5)" fill="${color}"/>${swatches}</svg>`;
     await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
+  }
+  #colorSwatches(colors) {
+    return colors.slice(0, 3).map(
+      (swatch, index) => `<circle cx="${94 + index * 14}" cy="22" r="11" fill="${swatch}" stroke="#fff" stroke-width="3"/>`
+    ).join("");
   }
 };
 _init2 = __decoratorStart(_a2);

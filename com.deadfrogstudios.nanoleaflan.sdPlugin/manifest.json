@@ -2,7 +2,7 @@
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
   "UUID": "com.deadfrogstudios.nanoleaflan",
   "Name": "Nanoleaf LAN",
-  "Version": "0.1.0.0",
+  "Version": "0.1.0.6",
   "Author": "Dead Frog Studios",
   "Description": "Control Nanoleaf Essentials bulbs directly over your local network with Nanoleaf LAN.",
   "Category": "Nanoleaf LAN",
@@ -11,11 +11,22 @@
   "CodePath": "bin/plugin.js",
   "PropertyInspectorPath": "ui/apply-scene.html",
   "SDKVersion": 2,
-  "Software": { "MinimumVersion": "6.6" },
-  "Nodejs": { "Version": "20", "Debug": "enabled" },
+  "Software": {
+    "MinimumVersion": "6.6"
+  },
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "enabled"
+  },
   "OS": [
-    { "Platform": "windows", "MinimumVersion": "10" },
-    { "Platform": "mac", "MinimumVersion": "12" }
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "12"
+    }
   ],
   "Actions": [
     {
@@ -23,7 +34,10 @@
       "Name": "Set Color",
       "Tooltip": "Set each light in a device or group to its configured state.",
       "Icon": "static/imgs/set-color",
-      "Controllers": ["Keypad", "Encoder"],
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
       "Encoder": {
         "layout": "$B1",
         "StackColor": "#65D96E",
@@ -33,16 +47,40 @@
           "Touch": "Toggle light"
         }
       },
-      "States": [{ "Image": "static/imgs/nanoleaf-bulb", "TitleAlignment": "middle", "FontSize": 14 }]
+      "States": [
+        {
+          "Image": "static/imgs/nanoleaf-bulb",
+          "TitleAlignment": "middle",
+          "FontSize": 14
+        }
+      ]
     },
     {
       "UUID": "com.deadfrogstudios.nanoleaflan.color-cycle",
       "Name": "Color Cycle",
       "Tooltip": "Cycle a bulb or group through a custom list of colors.",
       "Icon": "static/imgs/color-cycle",
-      "Controllers": ["Keypad"],
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
       "PropertyInspectorPath": "ui/color-cycle.html",
-      "States": [{ "Image": "static/imgs/nanoleaf-bulb", "TitleAlignment": "middle", "FontSize": 14 }]
+      "Encoder": {
+        "layout": "layouts/color-cycle.json",
+        "StackColor": "#65D96E",
+        "TriggerDescription": {
+          "Push": "Apply next color",
+          "Rotate": "Adjust brightness",
+          "Touch": "Apply next color"
+        }
+      },
+      "States": [
+        {
+          "Image": "static/imgs/nanoleaf-bulb",
+          "TitleAlignment": "middle",
+          "FontSize": 14
+        }
+      ]
     }
   ]
 }
