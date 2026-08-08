@@ -20958,7 +20958,8 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     const badge = status === "error" ? '<path d="M111 18 132 55H90Z" fill="#e0a12e"/><path d="M111 30v12m0 6v1" stroke="#151b18" stroke-width="4" stroke-linecap="round"/>' : "";
     const mark = status === "unconfigured" ? '<path d="M72 48v32M56 64h32" stroke="#fff" stroke-width="7" stroke-linecap="round"/>' : "";
     const offMark = status === "off" ? '<rect x="49" y="60" width="46" height="24" rx="7" fill="#d7dcda"/><text x="72" y="77" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#151b18">OFF</text>' : "";
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/>${glow}<path d="${NANOLEAF_BULB_PATH}" transform="scale(6)" fill="${fill}"/>${mark}${badge}${offMark}</svg>`;
+    const colourDot = status === "off" ? `<circle cx="122" cy="22" r="8" fill="${colour}" stroke="#d7dcda" stroke-width="2"/>` : "";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/>${glow}<path d="${NANOLEAF_BULB_PATH}" transform="scale(6)" fill="${fill}"/>${mark}${badge}${offMark}${colourDot}</svg>`;
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
   }
 };
