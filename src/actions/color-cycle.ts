@@ -17,6 +17,7 @@ type Settings = ColorCycleActionSettings & JsonObject;
 const DEFAULT_COLOR = "#00ff00";
 const DEFAULT_COLORS = [DEFAULT_COLOR, "#ff0000", "#0000ff"];
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const NANOLEAF_BULB_PATH = /<path[^>]*\sd="([^"]+)"/.exec(nanoleafBulbSvg)?.[1] ?? "";
 
 function normalizedColors(colors: unknown): string[] {
   if (!Array.isArray(colors)) return DEFAULT_COLORS;
@@ -75,7 +76,7 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     }
     const nextColorIndex = (index + 1) % colors.length;
     await ev.action.setSettings({ ...settings, colors, nextColorIndex, currentColor: color });
-    await this.#setImage(ev.action, color);
+    await this.#setImage(ev.action, color, colors);
   }
 
   override async onPropertyInspectorDidAppear(_ev: PropertyInspectorDidAppearEvent<Settings>): Promise<void> {
@@ -106,13 +107,16 @@ export class ColorCycleAction extends SingletonAction<Settings> {
       ? settings.currentColor
       : colors[0] ?? DEFAULT_COLOR;
     if (actionInstance.isKey()) {
-      await actionInstance.setTitle(settings.targetId ? "Cycle" : "Configure");
-      await this.#setImage(actionInstance, settings.targetId ? currentColor : "#3d4541");
+      await actionInstance.setTitle(settings.targetId ? "" : "Configure");
+      await this.#setImage(actionInstance, settings.targetId ? currentColor : "#3d4541", settings.targetId ? colors : []);
     }
   }
 
-  async #setImage(actionInstance: KeyDownEvent<Settings>["action"], color: string): Promise<void> {
-    const svg = nanoleafBulbSvg.replace("#ffffff", color);
+  async #setImage(actionInstance: KeyDownEvent<Settings>["action"], color: string, colors: string[]): Promise<void> {
+    const swatches = colors.slice(0, 3).map((swatch, index) =>
+      `<circle cx="${94 + index * 14}" cy="22" r="11" fill="${swatch}" stroke="#fff" stroke-width="3"/>`
+    ).join("");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><path d="${NANOLEAF_BULB_PATH}" transform="translate(18 9) scale(4.5)" fill="${color}"/>${swatches}</svg>`;
     await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
   }
 }

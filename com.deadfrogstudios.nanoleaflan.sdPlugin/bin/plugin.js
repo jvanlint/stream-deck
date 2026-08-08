@@ -20957,8 +20957,8 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     const badge = status === "error" ? '<path d="M111 18 132 55H90Z" fill="#e0a12e"/><path d="M111 30v12m0 6v1" stroke="#151b18" stroke-width="4" stroke-linecap="round"/>' : "";
     const mark = status === "unconfigured" ? '<path d="M72 48v32M56 64h32" stroke="#fff" stroke-width="7" stroke-linecap="round"/>' : "";
     const offMark = status === "off" ? '<rect x="49" y="60" width="46" height="24" rx="7" fill="#d7dcda"/><text x="72" y="77" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#151b18">OFF</text>' : "";
-    const colourDot = status === "off" ? `<circle cx="122" cy="22" r="8" fill="${colour}" stroke="#d7dcda" stroke-width="2"/>` : "";
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/><path d="${NANOLEAF_BULB_PATH}" transform="scale(6)" fill="${fill}"/>${mark}${badge}${offMark}${colourDot}</svg>`;
+    const colourDot = status === "on" || status === "off" ? `<circle cx="122" cy="22" r="8" fill="${colour}" stroke="#d7dcda" stroke-width="2"/>` : "";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/><path d="${NANOLEAF_BULB_PATH}" transform="translate(18 18) scale(4.5)" fill="${fill}"/>${mark}${badge}${offMark}${colourDot}</svg>`;
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
   }
 };
@@ -20970,6 +20970,7 @@ __runInitializers(_init, 1, ApplySceneAction);
 var DEFAULT_COLOR = "#00ff00";
 var DEFAULT_COLORS = [DEFAULT_COLOR, "#ff0000", "#0000ff"];
 var HEX_COLOR = /^#[0-9a-f]{6}$/i;
+var NANOLEAF_BULB_PATH2 = /<path[^>]*\sd="([^"]+)"/.exec(nanoleaf_bulb_default)?.[1] ?? "";
 function normalizedColors(colors) {
   if (!Array.isArray(colors)) return DEFAULT_COLORS;
   const valid = colors.filter((color) => typeof color === "string" && HEX_COLOR.test(color));
@@ -21027,7 +21028,7 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     }
     const nextColorIndex = (index + 1) % colors.length;
     await ev.action.setSettings({ ...settings2, colors, nextColorIndex, currentColor: color });
-    await this.#setImage(ev.action, color);
+    await this.#setImage(ev.action, color, colors);
   }
   async onPropertyInspectorDidAppear(_ev) {
     await this.#sendTargets();
@@ -21051,12 +21052,15 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     const colors = normalizedColors(settings2.colors);
     const currentColor = typeof settings2.currentColor === "string" && HEX_COLOR.test(settings2.currentColor) ? settings2.currentColor : colors[0] ?? DEFAULT_COLOR;
     if (actionInstance.isKey()) {
-      await actionInstance.setTitle(settings2.targetId ? "Cycle" : "Configure");
-      await this.#setImage(actionInstance, settings2.targetId ? currentColor : "#3d4541");
+      await actionInstance.setTitle(settings2.targetId ? "" : "Configure");
+      await this.#setImage(actionInstance, settings2.targetId ? currentColor : "#3d4541", settings2.targetId ? colors : []);
     }
   }
-  async #setImage(actionInstance, color) {
-    const svg = nanoleaf_bulb_default.replace("#ffffff", color);
+  async #setImage(actionInstance, color, colors) {
+    const swatches = colors.slice(0, 3).map(
+      (swatch, index) => `<circle cx="${94 + index * 14}" cy="22" r="11" fill="${swatch}" stroke="#fff" stroke-width="3"/>`
+    ).join("");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><path d="${NANOLEAF_BULB_PATH2}" transform="translate(18 9) scale(4.5)" fill="${color}"/>${swatches}</svg>`;
     await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
   }
 };
