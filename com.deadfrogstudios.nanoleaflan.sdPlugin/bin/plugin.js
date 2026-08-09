@@ -21030,6 +21030,7 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
   #statusTimers = /* @__PURE__ */ new Map();
   #stateCache = /* @__PURE__ */ new Map();
   #dialPending = /* @__PURE__ */ new Map();
+  #keyPresses = /* @__PURE__ */ new Map();
   async onWillAppear(ev) {
     await this.#refresh(ev.action, ev.payload.settings);
     const existing = this.#statusTimers.get(ev.action.id);
@@ -21041,8 +21042,25 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
   async onDidReceiveSettings(ev) {
     await this.#refresh(ev.action, ev.payload.settings);
   }
-  async onKeyDown(ev) {
-    await this.#cycle(ev.action, ev.payload.settings);
+  onKeyDown(ev) {
+    const existing = this.#keyPresses.get(ev.action.id);
+    if (existing) clearTimeout(existing.timer);
+    const press = {
+      longPress: false,
+      settings: ev.payload.settings,
+      timer: setTimeout(() => {
+        press.longPress = true;
+        void this.#turnOff(ev.action, press.settings);
+      }, 750)
+    };
+    this.#keyPresses.set(ev.action.id, press);
+  }
+  async onKeyUp(ev) {
+    const press = this.#keyPresses.get(ev.action.id);
+    if (!press) return;
+    clearTimeout(press.timer);
+    this.#keyPresses.delete(ev.action.id);
+    if (!press.longPress) await this.#cycle(ev.action, ev.payload.settings);
   }
   async onDialDown(ev) {
     await this.#cycle(ev.action, ev.payload.settings);
@@ -21066,6 +21084,9 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     const statusTimer = this.#statusTimers.get(ev.action.id);
     if (statusTimer) clearInterval(statusTimer);
     this.#statusTimers.delete(ev.action.id);
+    const keyPress = this.#keyPresses.get(ev.action.id);
+    if (keyPress) clearTimeout(keyPress.timer);
+    this.#keyPresses.delete(ev.action.id);
     const pending = this.#dialPending.get(ev.action.id);
     if (pending) clearTimeout(pending.timer);
     this.#dialPending.delete(ev.action.id);
@@ -21102,6 +21123,31 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     const updatedSettings = { ...settings2, colors, nextColorIndex, currentColor: color };
     await actionInstance.setSettings(updatedSettings);
     await this.#refresh(actionInstance, updatedSettings);
+  }
+  async #turnOff(actionInstance, settings2) {
+    const deviceIds = await this.#deviceIds(settings2);
+    if (deviceIds.length === 0) {
+      await actionInstance.showAlert();
+      return;
+    }
+    const results = await Promise.allSettled(deviceIds.map(async (deviceId) => {
+      const client = await this.clients.forDevice(deviceId);
+      await client.updateState({ on: { value: false } });
+    }));
+    if (results.some((result) => result.status === "rejected")) {
+      await actionInstance.showAlert();
+      return;
+    }
+    for (const deviceId of deviceIds) {
+      const cached2 = this.#stateCache.get(deviceId);
+      this.#stateCache.set(deviceId, {
+        color: cached2?.color ?? settings2.currentColor ?? DEFAULT_COLOR,
+        brightness: cached2?.brightness ?? settings2.brightness ?? 100,
+        on: false,
+        checkedAt: Date.now()
+      });
+    }
+    await this.#refresh(actionInstance, settings2);
   }
   async #applyBrightness(actionId) {
     const pending = this.#dialPending.get(actionId);

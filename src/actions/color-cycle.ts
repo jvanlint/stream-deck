@@ -4,6 +4,7 @@ import streamDeck, {
   type DialRotateEvent,
   type DidReceiveSettingsEvent,
   type KeyDownEvent,
+  type KeyUpEvent,
   type PropertyInspectorDidAppearEvent,
   type SendToPluginEvent,
   SingletonAction,
@@ -70,6 +71,11 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     action: DialRotateEvent<Settings>["action"];
     settings: Settings;
   }>();
+  readonly #keyPresses = new Map<string, {
+    longPress: boolean;
+    settings: Settings;
+    timer: ReturnType<typeof setTimeout>;
+  }>();
 
   constructor(readonly manager: NanoleafDeviceManager, readonly clients: NanoleafClientFactory) {
     super();
@@ -88,8 +94,26 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     await this.#refresh(ev.action, ev.payload.settings);
   }
 
-  override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
-    await this.#cycle(ev.action, ev.payload.settings);
+  override onKeyDown(ev: KeyDownEvent<Settings>): void {
+    const existing = this.#keyPresses.get(ev.action.id);
+    if (existing) clearTimeout(existing.timer);
+    const press = {
+      longPress: false,
+      settings: ev.payload.settings,
+      timer: setTimeout(() => {
+        press.longPress = true;
+        void this.#turnOff(ev.action, press.settings);
+      }, 750)
+    };
+    this.#keyPresses.set(ev.action.id, press);
+  }
+
+  override async onKeyUp(ev: KeyUpEvent<Settings>): Promise<void> {
+    const press = this.#keyPresses.get(ev.action.id);
+    if (!press) return;
+    clearTimeout(press.timer);
+    this.#keyPresses.delete(ev.action.id);
+    if (!press.longPress) await this.#cycle(ev.action, ev.payload.settings);
   }
 
   override async onDialDown(ev: DialDownEvent<Settings>): Promise<void> {
@@ -115,6 +139,9 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     const statusTimer = this.#statusTimers.get(ev.action.id);
     if (statusTimer) clearInterval(statusTimer);
     this.#statusTimers.delete(ev.action.id);
+    const keyPress = this.#keyPresses.get(ev.action.id);
+    if (keyPress) clearTimeout(keyPress.timer);
+    this.#keyPresses.delete(ev.action.id);
     const pending = this.#dialPending.get(ev.action.id);
     if (pending) clearTimeout(pending.timer);
     this.#dialPending.delete(ev.action.id);
@@ -153,6 +180,32 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     const updatedSettings = { ...settings, colors, nextColorIndex, currentColor: color } as Settings;
     await actionInstance.setSettings(updatedSettings);
     await this.#refresh(actionInstance, updatedSettings);
+  }
+
+  async #turnOff(actionInstance: KeyDownEvent<Settings>["action"], settings: Settings): Promise<void> {
+    const deviceIds = await this.#deviceIds(settings);
+    if (deviceIds.length === 0) {
+      await actionInstance.showAlert();
+      return;
+    }
+    const results = await Promise.allSettled(deviceIds.map(async (deviceId) => {
+      const client = await this.clients.forDevice(deviceId);
+      await client.updateState({ on: { value: false } });
+    }));
+    if (results.some((result) => result.status === "rejected")) {
+      await actionInstance.showAlert();
+      return;
+    }
+    for (const deviceId of deviceIds) {
+      const cached = this.#stateCache.get(deviceId);
+      this.#stateCache.set(deviceId, {
+        color: cached?.color ?? settings.currentColor ?? DEFAULT_COLOR,
+        brightness: cached?.brightness ?? settings.brightness ?? 100,
+        on: false,
+        checkedAt: Date.now()
+      });
+    }
+    await this.#refresh(actionInstance, settings);
   }
 
   async #applyBrightness(actionId: string): Promise<void> {
