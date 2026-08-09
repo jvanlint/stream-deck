@@ -15,6 +15,7 @@ import type { JsonObject, JsonValue } from "@elgato/utils";
 import type { ColorCycleActionSettings } from "../models.js";
 import type { NanoleafClientFactory } from "../nanoleaf/client.js";
 import type { NanoleafDeviceManager } from "../nanoleaf/device-manager.js";
+import { configurationBulbDataUrl } from "../icons/configuration-cog.js";
 import nanoleafBulbSvg from "../../com.deadfrogstudios.nanoleaflan.sdPlugin/static/imgs/nanoleaf-bulb.svg";
 
 type Settings = ColorCycleActionSettings & JsonObject;
@@ -62,7 +63,7 @@ function hueSaturationToHex(hue: number, saturation: number): string {
 @action({ UUID: "com.deadfrogstudios.nanoleaflan.color-cycle" })
 export class ColorCycleAction extends SingletonAction<Settings> {
   readonly #statusTimers = new Map<string, ReturnType<typeof setInterval>>();
-  readonly #stateCache = new Map<string, { color: string; brightness: number; updatedAt: number }>();
+  readonly #stateCache = new Map<string, { color: string; brightness: number; on: boolean; checkedAt: number }>();
   readonly #dialPending = new Map<string, {
     ticks: number;
     timer: ReturnType<typeof setTimeout>;
@@ -147,7 +148,7 @@ export class ColorCycleAction extends SingletonAction<Settings> {
       return;
     }
     const brightness = Math.max(1, Math.min(100, settings.brightness ?? 100));
-    for (const deviceId of deviceIds) this.#stateCache.set(deviceId, { color, brightness, updatedAt: Date.now() });
+    for (const deviceId of deviceIds) this.#stateCache.set(deviceId, { color, brightness, on: true, checkedAt: Date.now() });
     const nextColorIndex = (index + 1) % colors.length;
     const updatedSettings = { ...settings, colors, nextColorIndex, currentColor: color } as Settings;
     await actionInstance.setSettings(updatedSettings);
@@ -177,7 +178,8 @@ export class ColorCycleAction extends SingletonAction<Settings> {
       this.#stateCache.set(deviceId, {
         color: cached?.color ?? pending.settings.currentColor ?? DEFAULT_COLOR,
         brightness,
-        updatedAt: Date.now()
+        on: true,
+        checkedAt: Date.now()
       });
     }
     const updatedSettings = { ...pending.settings, brightness } as Settings;
@@ -209,10 +211,15 @@ export class ColorCycleAction extends SingletonAction<Settings> {
 
   async #refresh(actionInstance: WillAppearEvent<Settings>["action"], settings: Settings): Promise<void> {
     const colors = normalizedColors(settings.colors);
+    if (!settings.targetId) {
+      await this.#showConfigurationIcon(actionInstance);
+      return;
+    }
     let currentColor = typeof settings.currentColor === "string" && HEX_COLOR.test(settings.currentColor)
       ? settings.currentColor
       : colors[0] ?? DEFAULT_COLOR;
     let brightness = Math.max(1, Math.min(100, settings.brightness ?? 100));
+    let on = true;
     if (settings.targetId) {
       try {
         const deviceId = (await this.#deviceIds(settings))[0];
@@ -221,11 +228,14 @@ export class ColorCycleAction extends SingletonAction<Settings> {
           if (cached) {
             currentColor = cached.color;
             brightness = cached.brightness;
-          } else {
+            on = cached.on;
+          }
+          if (!cached || Date.now() - cached.checkedAt >= 2_000) {
             const state = await (await this.clients.forDevice(deviceId)).getState();
-            if (state.on.value) currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
+            on = state.on.value;
+            if (!cached && on) currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
             brightness = Math.max(1, Math.min(100, Math.round(state.brightness.value)));
-            this.#stateCache.set(deviceId, { color: currentColor, brightness, updatedAt: Date.now() });
+            this.#stateCache.set(deviceId, { color: currentColor, brightness, on, checkedAt: Date.now() });
           }
         }
       } catch (error) {
@@ -233,14 +243,14 @@ export class ColorCycleAction extends SingletonAction<Settings> {
       }
     }
     if (actionInstance.isKey()) {
-      await actionInstance.setTitle(settings.targetId ? "" : "Configure");
-      await this.#setImage(actionInstance, settings.targetId ? currentColor : "#3d4541", settings.targetId ? colors : []);
+      await actionInstance.setTitle("");
+      await this.#setImage(actionInstance, on ? currentColor : "#3d4541", colors, on);
     } else if (actionInstance.isDial()) {
       await actionInstance.setFeedback({
         title: "Color Cycle",
-        value: settings.targetId ? `${brightness}%` : "Configure",
-        indicator: settings.targetId ? brightness : 0,
-        icon: this.#dialIcon(settings.targetId ? currentColor : "#3d4541"),
+        value: settings.targetId ? on ? `${brightness}%` : "OFF" : "Configure",
+        indicator: settings.targetId && on ? brightness : 0,
+        icon: this.#dialIcon(settings.targetId && on ? currentColor : "#3d4541"),
         swatches: this.#dialSwatches(settings.targetId ? colors : [])
       });
     }
@@ -251,6 +261,15 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   }
 
+  async #showConfigurationIcon(actionInstance: WillAppearEvent<Settings>["action"]): Promise<void> {
+    if (actionInstance.isKey()) {
+      await actionInstance.setTitle("");
+      await actionInstance.setImage(configurationBulbDataUrl());
+    } else if (actionInstance.isDial()) {
+      await actionInstance.setFeedback({ title: "", value: "", indicator: 0, icon: configurationBulbDataUrl(false), swatches: this.#dialSwatches([]) });
+    }
+  }
+
   #dialSwatches(colors: string[]): string {
     const circles = colors.slice(0, 3).map((color, index) =>
       `<circle cx="${13 + index * 12}" cy="15" r="9" fill="${color}" stroke="#fff" stroke-width="2"/>`
@@ -259,9 +278,10 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   }
 
-  async #setImage(actionInstance: KeyDownEvent<Settings>["action"], color: string, colors: string[]): Promise<void> {
+  async #setImage(actionInstance: KeyDownEvent<Settings>["action"], color: string, colors: string[], on: boolean): Promise<void> {
     const swatches = this.#colorSwatches(colors);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><path d="${NANOLEAF_BULB_PATH}" transform="translate(18 9) scale(4.5)" fill="${color}"/>${swatches}</svg>`;
+    const offMark = on ? "" : '<rect x="49" y="60" width="46" height="24" rx="7" fill="#d7dcda"/><text x="72" y="77" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#151b18">OFF</text>';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><path d="${NANOLEAF_BULB_PATH}" transform="translate(18 9) scale(4.5)" fill="${color}"/>${offMark}${swatches}</svg>`;
     await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
   }
 

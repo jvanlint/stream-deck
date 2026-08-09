@@ -18,6 +18,7 @@ import type { NanoleafClientFactory } from "../nanoleaf/client.js";
 import type { NanoleafDeviceManager } from "../nanoleaf/device-manager.js";
 import { toggleScene } from "../nanoleaf/scene.js";
 import { colourTemperatureToHex } from "../nanoleaf/state.js";
+import { configurationBulbDataUrl } from "../icons/configuration-cog.js";
 import nanoleafBulbSvg from "../../com.deadfrogstudios.nanoleaflan.sdPlugin/static/imgs/nanoleaf-bulb.svg";
 
 type Settings = SceneActionSettings & JsonObject & { manualHostRequest?: string };
@@ -47,7 +48,7 @@ export class ApplySceneAction extends SingletonAction<Settings> {
 
   override async onWillAppear(ev: WillAppearEvent<Settings>): Promise<void> {
     const count = ev.payload.settings.lights?.length ?? 0;
-    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "");
     await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const existing = this.#statusTimers.get(ev.action.id);
     if (existing) clearInterval(existing);
@@ -159,7 +160,7 @@ export class ApplySceneAction extends SingletonAction<Settings> {
 
   override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<Settings>): Promise<void> {
     const count = ev.payload.settings.lights?.length ?? 0;
-    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "");
     await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const host = ev.payload.settings.manualHostRequest;
     if (!host) return;
@@ -269,7 +270,7 @@ export class ApplySceneAction extends SingletonAction<Settings> {
     }
     if (!actionInstance.isKey()) return;
     if (!programs || programs.length === 0) {
-      await actionInstance.setImage(this.#keyImage("unconfigured", "#65d96e"));
+      await this.#showConfigurationIcon(actionInstance);
       return;
     }
     try {
@@ -283,12 +284,7 @@ export class ApplySceneAction extends SingletonAction<Settings> {
 
   async #refreshDial(actionInstance: DialDownEvent<Settings>["action"], programs: NonNullable<Settings["lights"]>): Promise<void> {
     if (programs.length === 0) {
-      await actionInstance.setFeedback({
-        title: "Nanoleaf LAN",
-        value: "Configure",
-        indicator: 0,
-        icon: this.#dialIcon("#65d96e")
-      });
+      await this.#showConfigurationIcon(actionInstance);
       return;
     }
     try {
@@ -338,6 +334,11 @@ export class ApplySceneAction extends SingletonAction<Settings> {
     }
     if (program?.mode === "ct") return colourTemperatureToHex(program.ct);
     return "#65d96e";
+  }
+
+  async #showConfigurationIcon(actionInstance: WillAppearEvent<Settings>["action"]): Promise<void> {
+    if (actionInstance.isKey()) await actionInstance.setImage(configurationBulbDataUrl());
+    else if (actionInstance.isDial()) await actionInstance.setFeedback({ title: "", value: "", indicator: 0, icon: configurationBulbDataUrl(false) });
   }
 
   #dialIcon(colour: string): string {

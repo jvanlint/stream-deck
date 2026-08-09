@@ -20646,8 +20646,24 @@ async function toggleScene(programs, clients2) {
 // com.deadfrogstudios.nanoleaflan.sdPlugin/static/imgs/nanoleaf-bulb.svg
 var nanoleaf_bulb_default = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">\n  <title>nanoleaf-bulb</title>\n  <path fill="#ffffff" d="M11.381 22h1.567l.446-.62h-2.612Zm-1.582-4.093v2.575a.724.724 0 0 0 .725.724H13.6a.833.833 0 0 0 .832-.833v-2.501a21 21 0 0 1-2.372.142a22 22 0 0 1-2.261-.107m5.349-11.076a.34.34 0 0 0 .5-.119l.009-.016l.013-.027l.683-1.63a.34.34 0 0 0-.028-.316l-.632-.977a.4.4 0 0 0-.042-.053l-.231-.236a.34.34 0 0 0-.244-.1H14.17a.34.34 0 0 0-.341.346l.031 2.034a.34.34 0 0 0 .14.272Zm-2.896 3.867l2.42.085l-.272-1.211a.73.73 0 0 0-.291-.432l-1.721-1.191a.94.94 0 0 0-.768-.007l-.016.007L9.888 9.14a.72.72 0 0 0-.292.432l-.277 1.211l2.417-.085q.258-.009.516 0M9.979 3.203a.34.34 0 0 1 .337.342l-.029 1.866a.34.34 0 0 0 .045.173l1.084 1.883a.34.34 0 0 0 .313.168l.244-.015h.042l.249.016a.34.34 0 0 0 .312-.169l1.084-1.883a.34.34 0 0 0 .044-.173l-.028-1.866a.336.336 0 0 1 .336-.342h1.16l-1.01-1.033a.33.33 0 0 0-.216-.1h-.052a26 26 0 0 0-3.801 0h-.048a.34.34 0 0 0-.216.1l-1.01 1.033Zm3.727 2.603L12.7 7.562a.374.374 0 0 0 .111.494l.8.558l.416.288a.374.374 0 0 0 .544-.133l.675-1.286a.374.374 0 0 0-.113-.478l-1.267-.908a.37.37 0 0 1-.156-.3Zm3.073 2.818l.761-1.149a.21.21 0 0 0 .025-.179l-.336-1.063a.2.2 0 0 0-.021-.048l-.484-.779a.21.21 0 0 0-.372.029l-.501 1.184a.2.2 0 0 0-.007.142l.557 1.808a.21.21 0 0 0 .378.055m-1.47 2.216l1.117-1.683l-.71-2.247l-.04.077l-.115.218l-.037.081l-.004-.002l-.717 1.365l-.323.616l.014.059l.335 1.468Zm2.367-3.297L16.592 9.18l-.72 1.084l-.391.589l.392.029l1.839-2.673a.2.2 0 0 0 .035-.148Zm-2.293-4.34l.129.131l.019.02l.263.269v.007l.795 1.229l.766 1.285l.346 1.086V6.016a.4.4 0 0 0-.059-.209l-1.4-2.31a.54.54 0 0 0-.182-.184l-1.46-.916l.137.14Zm1.402 7.757a.175.175 0 0 0 .171-.1l.619-1.237a.5.5 0 0 0 .048-.176l.062-.855l-1.637 2.3ZM9.841 3.354H8.807a.32.32 0 0 0-.23.1l-.239.243a.3.3 0 0 0-.04.05l-.637.986a.32.32 0 0 0-.027.3l.687 1.64l.012.025l.02.037a.32.32 0 0 0 .472.112l1.174-.844a.32.32 0 0 0 .134-.256l.031-2.067a.32.32 0 0 0-.323-.326M8.86 7.005a.375.375 0 0 0-.114.478l.675 1.286a.375.375 0 0 0 .545.133l.052-.036l1.167-.81a.37.37 0 0 0 .111-.494l-1.011-1.756v-.008a.37.37 0 0 1-.156.3ZM7.22 5.484l-.432.7a.3.3 0 0 0-.027.059l-.327 1.031a.26.26 0 0 0 .031.22l.692 1.045a.257.257 0 0 0 .461-.066l.52-1.695a.25.25 0 0 0-.009-.175l-.453-1.082a.258.258 0 0 0-.456-.037m1.416 5.286a.14.14 0 0 0 .129.061l.3-.029a.14.14 0 0 0 .122-.107l.312-1.371v-.009a.14.14 0 0 0-.013-.1l-.3-.57l-.715-1.361l-.038-.081a.139.139 0 0 0-.255.023l-.592 1.872a.14.14 0 0 0 .017.119Zm-.517.112l.391-.029l-1.932-2.915l-.261-.395l-.063.455a.4.4 0 0 0 .065.272ZM6.631 6.148v-.007l.768-1.238a.03.03 0 0 0 0-.029a.03.03 0 0 1 0-.03l.785-1.214v-.007l.411-.42l.456-.466l.143-.147a.032.032 0 0 0-.04-.049l-1.252.781a.46.46 0 0 0-.156.158L6.351 5.797a.43.43 0 0 0-.064.226v1.2Zm-.324 2.45l.059.815a.7.7 0 0 0 .07.252l.589 1.179a.21.21 0 0 0 .207.116l.711-.062Zm1.392 2.621l-.27.007l2.485 6.341l.1.007a29 29 0 0 0 4.371-.007l2.316-6.345a62.4 62.4 0 0 0-9.002-.003"/>\n</svg>\n';
 
-// src/actions/apply-scene.ts
+// src/icons/configuration-cog.ts
+var GEAR_SEGMENTS = [
+  "M15.24 6.37c.41.23.8.51 1.14.83c0 0 2.62-1.08 2.63-1.06c0 0 1.56 2.7 1.56 2.7c.01.03-2.22 1.75-2.22 1.75c.1.45.15.93.15 1.41",
+  "M18.5 11.99c.01.47-.04.95-.15 1.4c0 0 2.25 1.73 2.23 1.75c0 0-1.56 2.7-1.56 2.7c-.02.02-2.63-1.05-2.63-1.05c-.34.31-.73.59-1.15.83",
+  "M15.26 17.62c-.4.24-.84.44-1.29.57c0 0-.37 2.81-.4 2.81c0 0-3.12 0-3.12 0c-.03-.01-.41-2.8-.41-2.8c-.44-.14-.88-.34-1.3-.58",
+  "M8.76 17.63c-.41-.23-.8-.51-1.14-.83c0 0-2.62 1.08-2.63 1.06c0 0-1.56-2.7-1.56-2.7c-.01-.03 2.22-1.75 2.22-1.75c-.1-.45-.15-.93-.15-1.41",
+  "M5.5 12.01c-.01-.47.04-.95.15-1.4c0 0-2.25-1.73-2.23-1.75c0 0 1.56-2.7 1.56-2.7c.02-.02 2.63 1.05 2.63 1.05c.34-.31.73-.59 1.15-.83",
+  "M8.74 6.38c.4-.24.84-.44 1.29-.57c0 0 .37-2.81.4-2.81c0 0 3.12 0 3.12 0c.03.01.41 2.8.41 2.8c.44.14.88.34 1.3.58"
+];
 var NANOLEAF_BULB_PATH = /<path[^>]*\sd="([^"]+)"/.exec(nanoleaf_bulb_default)?.[1] ?? "";
+function configurationBulbDataUrl(background = true) {
+  const segments = GEAR_SEGMENTS.map((path5) => `<path d="${path5}"/>`).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">${background ? '<rect width="144" height="144" rx="18" fill="#151b18"/>' : ""}<path d="${NANOLEAF_BULB_PATH}" transform="translate(18 18) scale(4.5)" fill="#3d4541"/><g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.1" transform="translate(42 42) scale(2.5)"><circle cx="12" cy="12" r="3"/>${segments}</g></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+// src/actions/apply-scene.ts
+var NANOLEAF_BULB_PATH2 = /<path[^>]*\sd="([^"]+)"/.exec(nanoleaf_bulb_default)?.[1] ?? "";
 var _ApplySceneAction_decorators, _init, _a;
 _ApplySceneAction_decorators = [action({ UUID: "com.deadfrogstudios.nanoleaflan.apply-scene" })];
 var ApplySceneAction = class extends (_a = SingletonAction) {
@@ -20668,7 +20684,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   }
   async onWillAppear(ev) {
     const count = ev.payload.settings.lights?.length ?? 0;
-    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "");
     await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const existing = this.#statusTimers.get(ev.action.id);
     if (existing) clearInterval(existing);
@@ -20767,7 +20783,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   }
   async onDidReceiveSettings(ev) {
     const count = ev.payload.settings.lights?.length ?? 0;
-    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "Configure");
+    if (ev.action.isKey()) await ev.action.setTitle(count > 0 ? `${count} light${count === 1 ? "" : "s"}` : "");
     await this.#refreshAction(ev.action, ev.payload.settings.lights ?? []);
     const host = ev.payload.settings.manualHostRequest;
     if (!host) return;
@@ -20870,7 +20886,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     }
     if (!actionInstance.isKey()) return;
     if (!programs || programs.length === 0) {
-      await actionInstance.setImage(this.#keyImage("unconfigured", "#65d96e"));
+      await this.#showConfigurationIcon(actionInstance);
       return;
     }
     try {
@@ -20883,12 +20899,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
   }
   async #refreshDial(actionInstance, programs) {
     if (programs.length === 0) {
-      await actionInstance.setFeedback({
-        title: "Nanoleaf LAN",
-        value: "Configure",
-        indicator: 0,
-        icon: this.#dialIcon("#65d96e")
-      });
+      await this.#showConfigurationIcon(actionInstance);
       return;
     }
     try {
@@ -20937,6 +20948,10 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     if (program?.mode === "ct") return colourTemperatureToHex(program.ct);
     return "#65d96e";
   }
+  async #showConfigurationIcon(actionInstance) {
+    if (actionInstance.isKey()) await actionInstance.setImage(configurationBulbDataUrl());
+    else if (actionInstance.isDial()) await actionInstance.setFeedback({ title: "", value: "", indicator: 0, icon: configurationBulbDataUrl(false) });
+  }
   #dialIcon(colour) {
     const svg = nanoleaf_bulb_default.replace("#ffffff", colour);
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
@@ -20958,7 +20973,7 @@ var ApplySceneAction = class extends (_a = SingletonAction) {
     const mark = status === "unconfigured" ? '<path d="M72 48v32M56 64h32" stroke="#fff" stroke-width="7" stroke-linecap="round"/>' : "";
     const offMark = status === "off" ? '<rect x="49" y="60" width="46" height="24" rx="7" fill="#d7dcda"/><text x="72" y="77" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#151b18">OFF</text>' : "";
     const colourDot = status === "on" || status === "off" ? `<circle cx="122" cy="22" r="8" fill="${colour}" stroke="#d7dcda" stroke-width="2"/>` : "";
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/><path d="${NANOLEAF_BULB_PATH}" transform="translate(18 18) scale(4.5)" fill="${fill}"/>${mark}${badge}${offMark}${colourDot}</svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect width="144" height="144" rx="18" fill="#151b18"/><path d="${NANOLEAF_BULB_PATH2}" transform="translate(18 18) scale(4.5)" fill="${fill}"/>${mark}${badge}${offMark}${colourDot}</svg>`;
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
   }
 };
@@ -20970,7 +20985,7 @@ __runInitializers(_init, 1, ApplySceneAction);
 var DEFAULT_COLOR = "#00ff00";
 var DEFAULT_COLORS = [DEFAULT_COLOR, "#ff0000", "#0000ff"];
 var HEX_COLOR = /^#[0-9a-f]{6}$/i;
-var NANOLEAF_BULB_PATH2 = /<path[^>]*\sd="([^"]+)"/.exec(nanoleaf_bulb_default)?.[1] ?? "";
+var NANOLEAF_BULB_PATH3 = /<path[^>]*\sd="([^"]+)"/.exec(nanoleaf_bulb_default)?.[1] ?? "";
 function normalizedColors(colors) {
   if (!Array.isArray(colors)) return DEFAULT_COLORS;
   const valid = colors.filter((color) => typeof color === "string" && HEX_COLOR.test(color));
@@ -21082,7 +21097,7 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
       return;
     }
     const brightness = Math.max(1, Math.min(100, settings2.brightness ?? 100));
-    for (const deviceId of deviceIds) this.#stateCache.set(deviceId, { color, brightness, updatedAt: Date.now() });
+    for (const deviceId of deviceIds) this.#stateCache.set(deviceId, { color, brightness, on: true, checkedAt: Date.now() });
     const nextColorIndex = (index + 1) % colors.length;
     const updatedSettings = { ...settings2, colors, nextColorIndex, currentColor: color };
     await actionInstance.setSettings(updatedSettings);
@@ -21111,7 +21126,8 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
       this.#stateCache.set(deviceId, {
         color: cached2?.color ?? pending.settings.currentColor ?? DEFAULT_COLOR,
         brightness,
-        updatedAt: Date.now()
+        on: true,
+        checkedAt: Date.now()
       });
     }
     const updatedSettings = { ...pending.settings, brightness };
@@ -21138,8 +21154,13 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
   }
   async #refresh(actionInstance, settings2) {
     const colors = normalizedColors(settings2.colors);
+    if (!settings2.targetId) {
+      await this.#showConfigurationIcon(actionInstance);
+      return;
+    }
     let currentColor = typeof settings2.currentColor === "string" && HEX_COLOR.test(settings2.currentColor) ? settings2.currentColor : colors[0] ?? DEFAULT_COLOR;
     let brightness = Math.max(1, Math.min(100, settings2.brightness ?? 100));
+    let on = true;
     if (settings2.targetId) {
       try {
         const deviceId = (await this.#deviceIds(settings2))[0];
@@ -21148,11 +21169,14 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
           if (cached2) {
             currentColor = cached2.color;
             brightness = cached2.brightness;
-          } else {
+            on = cached2.on;
+          }
+          if (!cached2 || Date.now() - cached2.checkedAt >= 2e3) {
             const state = await (await this.clients.forDevice(deviceId)).getState();
-            if (state.on.value) currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
+            on = state.on.value;
+            if (!cached2 && on) currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
             brightness = Math.max(1, Math.min(100, Math.round(state.brightness.value)));
-            this.#stateCache.set(deviceId, { color: currentColor, brightness, updatedAt: Date.now() });
+            this.#stateCache.set(deviceId, { color: currentColor, brightness, on, checkedAt: Date.now() });
           }
         }
       } catch (error40) {
@@ -21160,14 +21184,14 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
       }
     }
     if (actionInstance.isKey()) {
-      await actionInstance.setTitle(settings2.targetId ? "" : "Configure");
-      await this.#setImage(actionInstance, settings2.targetId ? currentColor : "#3d4541", settings2.targetId ? colors : []);
+      await actionInstance.setTitle("");
+      await this.#setImage(actionInstance, on ? currentColor : "#3d4541", colors, on);
     } else if (actionInstance.isDial()) {
       await actionInstance.setFeedback({
         title: "Color Cycle",
-        value: settings2.targetId ? `${brightness}%` : "Configure",
-        indicator: settings2.targetId ? brightness : 0,
-        icon: this.#dialIcon(settings2.targetId ? currentColor : "#3d4541"),
+        value: settings2.targetId ? on ? `${brightness}%` : "OFF" : "Configure",
+        indicator: settings2.targetId && on ? brightness : 0,
+        icon: this.#dialIcon(settings2.targetId && on ? currentColor : "#3d4541"),
         swatches: this.#dialSwatches(settings2.targetId ? colors : [])
       });
     }
@@ -21176,6 +21200,14 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     const svg = nanoleaf_bulb_default.replace("#ffffff", color);
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   }
+  async #showConfigurationIcon(actionInstance) {
+    if (actionInstance.isKey()) {
+      await actionInstance.setTitle("");
+      await actionInstance.setImage(configurationBulbDataUrl());
+    } else if (actionInstance.isDial()) {
+      await actionInstance.setFeedback({ title: "", value: "", indicator: 0, icon: configurationBulbDataUrl(false), swatches: this.#dialSwatches([]) });
+    }
+  }
   #dialSwatches(colors) {
     const circles = colors.slice(0, 3).map(
       (color, index) => `<circle cx="${13 + index * 12}" cy="15" r="9" fill="${color}" stroke="#fff" stroke-width="2"/>`
@@ -21183,9 +21215,10 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 30">${circles}</svg>`;
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   }
-  async #setImage(actionInstance, color, colors) {
+  async #setImage(actionInstance, color, colors, on) {
     const swatches = this.#colorSwatches(colors);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><path d="${NANOLEAF_BULB_PATH2}" transform="translate(18 9) scale(4.5)" fill="${color}"/>${swatches}</svg>`;
+    const offMark = on ? "" : '<rect x="49" y="60" width="46" height="24" rx="7" fill="#d7dcda"/><text x="72" y="77" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#151b18">OFF</text>';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><path d="${NANOLEAF_BULB_PATH3}" transform="translate(18 9) scale(4.5)" fill="${color}"/>${offMark}${swatches}</svg>`;
     await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
   }
   #colorSwatches(colors) {
