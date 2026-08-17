@@ -1,6 +1,6 @@
 {
   "name": "nanoleaf-lan",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "private": true,
   "type": "module",
   "description": "Local-first Stream Deck control for Nanoleaf Essentials bulbs",
