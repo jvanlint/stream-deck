@@ -23,11 +23,13 @@ Developed by [Dead Frog Studios](https://deadfrogstudios.com).
 - User-defined bulb groups and friendly device names
 - **Set Color** action for power, brightness, colour, and colour-temperature scenes
 - **Color Cycle** action with an editable colour list and green, red, and blue defaults
+- Color Cycle keypad long-press to turn a bulb or group off
 - Concurrent scene updates for responsive multi-light control
 - Live key status with on, off, unconfigured, and unavailable states
 - Key indicators that show configured colours even when a bulb is off
 - Stream Deck+ support for both actions
 - Custom Color Cycle LCD layout with current-colour bulb, cycle swatches, and brightness bar
+- Static bulb-and-cog indicator when an action still needs configuration
 - Dial press or touchscreen tap to activate; dial rotation adjusts brightness in 5% steps
 - Stable device identity based on EUI-64 rather than changing IP addresses
 
@@ -80,29 +82,33 @@ If you test by manually copying files, copy the complete `com.deadfrogstudios.na
 6. Optionally rename bulbs or create a group.
 7. Select a paired bulb or group and configure its colour and brightness.
 
-Pairing and groups are shared by every Nanoleaf control. Scene settings belong to the individual key or dial, so the same group can have several different looks.
+Pairing and groups are shared by every Nanoleaf control on the same computer. Pairing tokens, discovered bulbs, names, and groups are not transferred to another computer automatically; each computer running Stream Deck must discover and pair its bulbs independently. Scene settings belong to the individual key or dial, so the same group can have several different looks.
 
 ### Set Color behaviour
 
 - **Key press, dial press, or touchscreen tap:** if every target bulb already matches the configured scene, turn the targets off; otherwise apply the scene immediately.
 - **Dial rotation:** adjust configured brightness in 5% increments and switch the target bulbs on.
 - **Key image:** shows the current on/off state, configured colour, or a warning when a bulb cannot be reached.
+- **Unconfigured action:** shows a dim bulb with a cog overlaid instead of configuration text.
 
 ## Set up Color Cycle
 
 1. Drag **Color Cycle** onto a key or Stream Deck+ dial.
 2. Select a paired bulb or group in the Property Inspector.
 3. Edit the colour circles. Use **+** to append a colour and **−** to remove the last colour.
-4. Press the key or dial to apply the next colour.
+4. Briefly press the key or dial to apply the next colour.
 
 Color Cycle starts with green, red, and blue. Its key shows the currently applied colour plus up to three overlapping cycle swatches. On Stream Deck+, the LCD places those swatches in the tile's upper-right corner and shows the current brightness as a percentage and progress bar.
 
 ### Color Cycle behaviour
 
-- **Key press, dial press, or touchscreen tap:** apply the next configured colour and advance the saved cycle position.
+- **Short keypad press:** apply the next configured colour on release and advance the saved cycle position.
+- **Keypad hold for 750 ms:** turn the selected bulb or group off without advancing the cycle.
+- **Dial press or touchscreen tap:** apply the next configured colour and advance the saved cycle position.
 - **Dial rotation:** adjust brightness in 5% increments without changing the current colour.
-- **Key and LCD bulb:** show the colour most recently applied by Color Cycle.
+- **Key and LCD bulb:** show the colour most recently applied by Color Cycle; when the bulb is off, show a dim bulb with `OFF` feedback.
 - **Cycle swatches:** show up to the first three configured colours.
+- **Unconfigured action:** shows a dim bulb with a cog overlaid instead of configuration text.
 
 ## Development
 
@@ -149,13 +155,17 @@ The plugin communicates with bulbs only over the local network. Nanoleaf authent
 - Confirm the computer and bulb are on the same LAN.
 - Disable guest-network or client-isolation features that prevent devices from communicating.
 - Ensure multicast/mDNS traffic is allowed between the devices.
+- Discovery runs continuously in the background. The Property Inspector's **Refresh** button reloads the locally stored results; it does not copy discoveries or pairing data from another computer.
 - Use **Bulb not discovered?** in the Property Inspector to add the bulb's IPv4 address.
 
 ### Pairing fails
 
 - Start **Connect to API** in the Nanoleaf app immediately before clicking the pairing button.
+- Use the individual **Pair** button beside the intended bulb while troubleshooting.
 - Confirm the bulb is reachable from the computer and retry while the pairing window is open.
-- If the bulb's address changed, refresh discovery or add its current address manually.
+- If the bulb's address changed, allow background discovery to update it or add its current address manually.
+- On Windows, test local API reachability with `Test-NetConnection BULB_IP -Port 16021`. A failed TCP test indicates a network, firewall, stale-address, VLAN, or client-isolation problem rather than an authorization-window problem.
+- Pair every bulb separately on each computer; secure pairing tokens are deliberately local to the current Windows user or macOS Keychain.
 
 ### A key shows a warning
 

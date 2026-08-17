@@ -21011,13 +21011,29 @@ function hueSaturationToHex(hue, saturation) {
   const c = s;
   const x = c * (1 - Math.abs(normalizedHue / 60 % 2 - 1));
   const m = 1 - c;
-  let rgb = [c, x, 0];
-  if (normalizedHue >= 60 && normalizedHue < 120) rgb = [x, c, 0];
+  let rgb;
+  if (normalizedHue < 60) rgb = [c, x, 0];
+  else if (normalizedHue < 120) rgb = [x, c, 0];
   else if (normalizedHue < 180) rgb = [0, c, x];
   else if (normalizedHue < 240) rgb = [0, x, c];
   else if (normalizedHue < 300) rgb = [x, 0, c];
-  else if (normalizedHue >= 300) rgb = [c, 0, x];
+  else rgb = [c, 0, x];
   return `#${rgb.map((channel) => Math.round((channel + m) * 255).toString(16).padStart(2, "0")).join("")}`;
+}
+function settingsForObservedColor(settings2, colors, observedColor) {
+  const matchingIndex = colors.findIndex((color) => color.toLowerCase() === observedColor.toLowerCase());
+  return {
+    ...settings2,
+    currentColor: observedColor,
+    ...matchingIndex >= 0 ? { nextColorIndex: (matchingIndex + 1) % colors.length } : {}
+  };
+}
+function selectCycleColor(settings2, colors, restoreCurrentColor) {
+  const index = Math.abs(Math.trunc(settings2.nextColorIndex ?? 0)) % colors.length;
+  if (restoreCurrentColor && typeof settings2.currentColor === "string" && HEX_COLOR.test(settings2.currentColor)) {
+    return { color: settings2.currentColor, nextColorIndex: index };
+  }
+  return { color: colors[index] ?? DEFAULT_COLOR, nextColorIndex: (index + 1) % colors.length };
 }
 var _ColorCycleAction_decorators, _init2, _a2;
 _ColorCycleAction_decorators = [action({ UUID: "com.deadfrogstudios.nanoleaflan.color-cycle" })];
@@ -21098,8 +21114,8 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
       return;
     }
     const colors = normalizedColors(settings2.colors);
-    const index = Math.abs(Math.trunc(settings2.nextColorIndex ?? 0)) % colors.length;
-    const color = colors[index] ?? DEFAULT_COLOR;
+    const restoreCurrentColor = deviceIds.every((deviceId) => this.#stateCache.get(deviceId)?.on === false);
+    const { color, nextColorIndex } = selectCycleColor(settings2, colors, restoreCurrentColor);
     const { hue, sat } = hexToHueSaturation(color);
     const results = await Promise.allSettled(deviceIds.map(async (deviceId) => {
       const client = await this.clients.forDevice(deviceId);
@@ -21119,7 +21135,6 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     }
     const brightness = Math.max(1, Math.min(100, settings2.brightness ?? 100));
     for (const deviceId of deviceIds) this.#stateCache.set(deviceId, { color, brightness, on: true, checkedAt: Date.now() });
-    const nextColorIndex = (index + 1) % colors.length;
     const updatedSettings = { ...settings2, colors, nextColorIndex, currentColor: color };
     await actionInstance.setSettings(updatedSettings);
     await this.#refresh(actionInstance, updatedSettings);
@@ -21207,9 +21222,12 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
     let currentColor = typeof settings2.currentColor === "string" && HEX_COLOR.test(settings2.currentColor) ? settings2.currentColor : colors[0] ?? DEFAULT_COLOR;
     let brightness = Math.max(1, Math.min(100, settings2.brightness ?? 100));
     let on = true;
+    let synchronizedSettings = settings2;
+    let primaryDeviceId;
     if (settings2.targetId) {
       try {
         const deviceId = (await this.#deviceIds(settings2))[0];
+        primaryDeviceId = deviceId;
         if (deviceId) {
           const cached2 = this.#stateCache.get(deviceId);
           if (cached2) {
@@ -21220,7 +21238,13 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
           if (!cached2 || Date.now() - cached2.checkedAt >= 2e3) {
             const state = await (await this.clients.forDevice(deviceId)).getState();
             on = state.on.value;
-            if (!cached2 && on) currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
+            plugin_default.logger.info(
+              `Color Cycle state ${deviceId}: on=${state.on.value} mode=${state.colorMode} hue=${state.hue.value} sat=${state.sat.value}`
+            );
+            if (on) {
+              currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
+              synchronizedSettings = settingsForObservedColor(settings2, colors, currentColor);
+            }
             brightness = Math.max(1, Math.min(100, Math.round(state.brightness.value)));
             this.#stateCache.set(deviceId, { color: currentColor, brightness, on, checkedAt: Date.now() });
           }
@@ -21229,8 +21253,15 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
         plugin_default.logger.warn(`Unable to refresh Color Cycle state: ${String(error40)}`);
       }
     }
+    const latest = primaryDeviceId ? this.#stateCache.get(primaryDeviceId) : void 0;
+    if (latest) {
+      currentColor = latest.color;
+      brightness = latest.brightness;
+      on = latest.on;
+    }
     if (actionInstance.isKey()) {
       await actionInstance.setTitle("");
+      plugin_default.logger.info(`Color Cycle key ${actionInstance.id}: rendering ${on ? currentColor : "OFF"} for target ${settings2.targetId}`);
       await this.#setImage(actionInstance, on ? currentColor : "#3d4541", colors, on);
     } else if (actionInstance.isDial()) {
       await actionInstance.setFeedback({
@@ -21240,6 +21271,9 @@ var ColorCycleAction = class extends (_a2 = SingletonAction) {
         icon: this.#dialIcon(settings2.targetId && on ? currentColor : "#3d4541"),
         swatches: this.#dialSwatches(settings2.targetId ? colors : [])
       });
+    }
+    if (synchronizedSettings.currentColor !== settings2.currentColor || synchronizedSettings.nextColorIndex !== settings2.nextColorIndex) {
+      await actionInstance.setSettings(synchronizedSettings);
     }
   }
   #dialIcon(color) {

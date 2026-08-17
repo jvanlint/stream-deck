@@ -46,19 +46,41 @@ function hexToHueSaturation(hex: string): { hue: number; sat: number } {
   return { hue: Math.round(hue), sat: Math.round(max === 0 ? 0 : delta / max * 100) };
 }
 
-function hueSaturationToHex(hue: number, saturation: number): string {
+export function hueSaturationToHex(hue: number, saturation: number): string {
   const normalizedHue = ((hue % 360) + 360) % 360;
   const s = Math.max(0, Math.min(100, saturation)) / 100;
   const c = s;
   const x = c * (1 - Math.abs((normalizedHue / 60) % 2 - 1));
   const m = 1 - c;
-  let rgb: [number, number, number] = [c, x, 0];
-  if (normalizedHue >= 60 && normalizedHue < 120) rgb = [x, c, 0];
+  let rgb: [number, number, number];
+  if (normalizedHue < 60) rgb = [c, x, 0];
+  else if (normalizedHue < 120) rgb = [x, c, 0];
   else if (normalizedHue < 180) rgb = [0, c, x];
   else if (normalizedHue < 240) rgb = [0, x, c];
   else if (normalizedHue < 300) rgb = [x, 0, c];
-  else if (normalizedHue >= 300) rgb = [c, 0, x];
+  else rgb = [c, 0, x];
   return `#${rgb.map((channel) => Math.round((channel + m) * 255).toString(16).padStart(2, "0")).join("")}`;
+}
+
+export function settingsForObservedColor(settings: Settings, colors: string[], observedColor: string): Settings {
+  const matchingIndex = colors.findIndex((color) => color.toLowerCase() === observedColor.toLowerCase());
+  return {
+    ...settings,
+    currentColor: observedColor,
+    ...(matchingIndex >= 0 ? { nextColorIndex: (matchingIndex + 1) % colors.length } : {})
+  } as Settings;
+}
+
+export function selectCycleColor(
+  settings: Pick<ColorCycleActionSettings, "currentColor" | "nextColorIndex">,
+  colors: string[],
+  restoreCurrentColor: boolean
+): { color: string; nextColorIndex: number } {
+  const index = Math.abs(Math.trunc(settings.nextColorIndex ?? 0)) % colors.length;
+  if (restoreCurrentColor && typeof settings.currentColor === "string" && HEX_COLOR.test(settings.currentColor)) {
+    return { color: settings.currentColor, nextColorIndex: index };
+  }
+  return { color: colors[index] ?? DEFAULT_COLOR, nextColorIndex: (index + 1) % colors.length };
 }
 
 @action({ UUID: "com.deadfrogstudios.nanoleaflan.color-cycle" })
@@ -157,8 +179,8 @@ export class ColorCycleAction extends SingletonAction<Settings> {
       return;
     }
     const colors = normalizedColors(settings.colors);
-    const index = Math.abs(Math.trunc(settings.nextColorIndex ?? 0)) % colors.length;
-    const color = colors[index] ?? DEFAULT_COLOR;
+    const restoreCurrentColor = deviceIds.every((deviceId) => this.#stateCache.get(deviceId)?.on === false);
+    const { color, nextColorIndex } = selectCycleColor(settings, colors, restoreCurrentColor);
     const { hue, sat } = hexToHueSaturation(color);
     const results = await Promise.allSettled(deviceIds.map(async (deviceId) => {
       const client = await this.clients.forDevice(deviceId);
@@ -176,7 +198,6 @@ export class ColorCycleAction extends SingletonAction<Settings> {
     }
     const brightness = Math.max(1, Math.min(100, settings.brightness ?? 100));
     for (const deviceId of deviceIds) this.#stateCache.set(deviceId, { color, brightness, on: true, checkedAt: Date.now() });
-    const nextColorIndex = (index + 1) % colors.length;
     const updatedSettings = { ...settings, colors, nextColorIndex, currentColor: color } as Settings;
     await actionInstance.setSettings(updatedSettings);
     await this.#refresh(actionInstance, updatedSettings);
@@ -273,9 +294,12 @@ export class ColorCycleAction extends SingletonAction<Settings> {
       : colors[0] ?? DEFAULT_COLOR;
     let brightness = Math.max(1, Math.min(100, settings.brightness ?? 100));
     let on = true;
+    let synchronizedSettings = settings;
+    let primaryDeviceId: string | undefined;
     if (settings.targetId) {
       try {
         const deviceId = (await this.#deviceIds(settings))[0];
+        primaryDeviceId = deviceId;
         if (deviceId) {
           const cached = this.#stateCache.get(deviceId);
           if (cached) {
@@ -286,7 +310,13 @@ export class ColorCycleAction extends SingletonAction<Settings> {
           if (!cached || Date.now() - cached.checkedAt >= 2_000) {
             const state = await (await this.clients.forDevice(deviceId)).getState();
             on = state.on.value;
-            if (!cached && on) currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
+            streamDeck.logger.info(
+              `Color Cycle state ${deviceId}: on=${state.on.value} mode=${state.colorMode} hue=${state.hue.value} sat=${state.sat.value}`
+            );
+            if (on) {
+              currentColor = hueSaturationToHex(state.hue.value, state.sat.value);
+              synchronizedSettings = settingsForObservedColor(settings, colors, currentColor);
+            }
             brightness = Math.max(1, Math.min(100, Math.round(state.brightness.value)));
             this.#stateCache.set(deviceId, { color: currentColor, brightness, on, checkedAt: Date.now() });
           }
@@ -295,8 +325,18 @@ export class ColorCycleAction extends SingletonAction<Settings> {
         streamDeck.logger.warn(`Unable to refresh Color Cycle state: ${String(error)}`);
       }
     }
+    // Refreshes can overlap when timers and settings events arrive together. Always
+    // render the newest shared device state so an older callback cannot repaint a
+    // freshly synchronized red icon with the green value it captured earlier.
+    const latest = primaryDeviceId ? this.#stateCache.get(primaryDeviceId) : undefined;
+    if (latest) {
+      currentColor = latest.color;
+      brightness = latest.brightness;
+      on = latest.on;
+    }
     if (actionInstance.isKey()) {
       await actionInstance.setTitle("");
+      streamDeck.logger.info(`Color Cycle key ${actionInstance.id}: rendering ${on ? currentColor : "OFF"} for target ${settings.targetId}`);
       await this.#setImage(actionInstance, on ? currentColor : "#3d4541", colors, on);
     } else if (actionInstance.isDial()) {
       await actionInstance.setFeedback({
@@ -306,6 +346,10 @@ export class ColorCycleAction extends SingletonAction<Settings> {
         icon: this.#dialIcon(settings.targetId && on ? currentColor : "#3d4541"),
         swatches: this.#dialSwatches(settings.targetId ? colors : [])
       });
+    }
+    if (synchronizedSettings.currentColor !== settings.currentColor
+      || synchronizedSettings.nextColorIndex !== settings.nextColorIndex) {
+      await actionInstance.setSettings(synchronizedSettings);
     }
   }
 

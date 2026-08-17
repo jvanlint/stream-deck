@@ -1,10 +1,11 @@
 import { build } from "esbuild";
 import { mkdir } from "node:fs/promises";
+import { resolve } from "node:path";
 const outdir = "com.deadfrogstudios.nanoleaflan.sdPlugin/bin";
 await mkdir(outdir, { recursive: true });
 await build({
   absWorkingDir: process.cwd(),
-  entryPoints: ["./src/plugin.ts"],
+  entryPoints: [resolve("src/plugin.ts")],
   outfile: `${outdir}/plugin.js`,
   bundle: true,
   platform: "node",

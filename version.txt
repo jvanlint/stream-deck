@@ -1,0 +1,13 @@
+Nanoleaf LAN 1.0.15
+
+Release notes
+
+- Improved Color Cycle power-on behavior. After a long press turns a light off,
+  the next short press now restores the last active color without advancing the
+  cycle. A second short press advances to the next configured color as expected.
+
+- Improved Color Cycle state synchronization. When Stream Deck starts or
+  refreshes, the key icon now reads the light's current hue and saturation and
+  displays the matching color. The cycle position is also aligned so the next
+  press advances from the light's actual color. This includes corrected hue
+  conversion for red, green, blue, and intermediate colors.
