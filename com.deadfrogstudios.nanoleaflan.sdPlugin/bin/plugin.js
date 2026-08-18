@@ -20606,15 +20606,19 @@ function clamp(value, min, max) {
 }
 
 // src/nanoleaf/scene.ts
+function isClose(actual, expected, tolerance) {
+  if (actual === void 0 || expected === void 0) return actual === expected;
+  return Math.abs(actual - expected) <= tolerance;
+}
 function matchesProgram(state, program) {
   if (!state.on.value) return false;
   const expected = toUpdatePayload({ ...program, power: true });
-  if (expected.brightness && state.brightness?.value !== expected.brightness.value) return false;
+  if (expected.brightness && !isClose(state.brightness?.value, expected.brightness.value, 1)) return false;
   if (program.mode === "hs") {
-    return state.colorMode === "hs" && state.hue?.value === expected.hue?.value && state.sat?.value === expected.sat?.value;
+    return state.colorMode === "hs" && isClose(state.hue?.value, expected.hue?.value, 2) && isClose(state.sat?.value, expected.sat?.value, 2);
   }
   if (program.mode === "ct") {
-    return state.colorMode === "ct" && state.ct?.value === expected.ct?.value;
+    return state.colorMode === "ct" && isClose(state.ct?.value, expected.ct?.value, 25);
   }
   return true;
 }

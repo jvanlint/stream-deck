@@ -55,6 +55,31 @@ describe("scene execution", () => {
     expect(updates.right).toHaveBeenCalledWith({ on: { value: false } });
   });
 
+  it("turns off when the bulb echoes back values a shade off from what was requested", async () => {
+    const updateState = vi.fn();
+    const clients = {
+      async forDevice() {
+        return {
+          getState: async () => ({
+            on: { value: true },
+            brightness: { value: 99 },
+            colorMode: "hs",
+            hue: { value: 1 },
+            sat: { value: 99 }
+          }),
+          updateState
+        };
+      }
+    } as unknown as NanoleafClientFactory;
+
+    const result = await toggleScene([
+      { deviceId: "bulb", power: true, brightness: 100, mode: "hs", hue: 0, sat: 100 }
+    ], clients);
+
+    expect(result.mode).toBe("off");
+    expect(updateState).toHaveBeenCalledWith({ on: { value: false } });
+  });
+
   it("changes an on bulb immediately when the pressed button has a different colour", async () => {
     const updateState = vi.fn();
     const clients = {

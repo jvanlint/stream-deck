@@ -28,17 +28,25 @@ export async function applyScene(programs: LightProgram[], clients: NanoleafClie
   return { succeeded, failed };
 }
 
+/** Nanoleaf bulbs can echo back values a shade off from what was requested
+ * (rounding in their internal colour engine), so compare with a small tolerance
+ * instead of exact equality. */
+function isClose(actual: number | undefined, expected: number | undefined, tolerance: number): boolean {
+  if (actual === undefined || expected === undefined) return actual === expected;
+  return Math.abs(actual - expected) <= tolerance;
+}
+
 function matchesProgram(state: NanoleafState, program: LightProgram): boolean {
   if (!state.on.value) return false;
   const expected = toUpdatePayload({ ...program, power: true } as LightProgram);
-  if (expected.brightness && state.brightness?.value !== expected.brightness.value) return false;
+  if (expected.brightness && !isClose(state.brightness?.value, expected.brightness.value as number, 1)) return false;
   if (program.mode === "hs") {
     return state.colorMode === "hs"
-      && state.hue?.value === expected.hue?.value
-      && state.sat?.value === expected.sat?.value;
+      && isClose(state.hue?.value, expected.hue?.value as number, 2)
+      && isClose(state.sat?.value, expected.sat?.value as number, 2);
   }
   if (program.mode === "ct") {
-    return state.colorMode === "ct" && state.ct?.value === expected.ct?.value;
+    return state.colorMode === "ct" && isClose(state.ct?.value, expected.ct?.value as number, 25);
   }
   return true;
 }

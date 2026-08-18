@@ -2,6 +2,11 @@ Nanoleaf LAN 1.0.15
 
 Release notes
 
+- Fixed Set Color not turning a bulb off on a second press. The toggle now
+  tolerates small rounding differences between the requested and reported
+  brightness, hue, saturation, and color temperature instead of requiring an
+  exact match.
+
 - Improved Color Cycle power-on behavior. After a long press turns a light off,
   the next short press now restores the last active color without advancing the
   cycle. A second short press advances to the next configured color as expected.
